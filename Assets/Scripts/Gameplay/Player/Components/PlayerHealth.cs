@@ -1,5 +1,4 @@
 using UnityEngine;
-using Gameplay.Combat;
 
 namespace Gameplay.Player
 {
