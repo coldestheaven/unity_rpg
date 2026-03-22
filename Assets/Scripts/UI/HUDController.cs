@@ -125,7 +125,7 @@ namespace RPG.UI
 
             if (healthText != null && playerHealth != null)
             {
-                healthText.text = $"{playerHealth.CurrentHealth}/{playerHealth.MaxHealth}";
+                healthText.text = $"{Mathf.Floor(playerHealth.CurrentHealth)}/{Mathf.Floor(playerHealth.MaxHealth)}";
             }
 
             if (experienceText != null && playerState != null)
@@ -136,7 +136,7 @@ namespace RPG.UI
 
         #region Event Handlers
 
-        private void OnHealthChanged(int health)
+        private void OnHealthChanged(float health)
         {
             UpdateHealthUI(health);
         }
@@ -154,7 +154,7 @@ namespace RPG.UI
             }
         }
 
-        private void UpdateHealthUI(int health)
+        private void UpdateHealthUI(float health)
         {
             if (healthSlider != null && playerHealth != null)
             {
@@ -164,7 +164,7 @@ namespace RPG.UI
 
             if (healthBar != null && playerHealth != null)
             {
-                healthBar.SetHealth(health);
+                healthBar.SetHealth((int)health);
             }
         }
 

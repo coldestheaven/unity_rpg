@@ -120,12 +120,12 @@ namespace Gameplay.Player
             Framework.Events.EventManager.Instance?.TriggerEvent(Framework.Events.GameEvents.PLAYER_DIED);
         }
 
-        public void TakeDamage(int damage, Vector2 attackerPosition)
+        public void TakeDamage(float damage, Vector2 attackerPosition)
         {
             health?.TakeDamage(damage, attackerPosition);
         }
 
-        public void Heal(int amount)
+        public void Heal(float amount)
         {
             health?.Heal(amount);
         }
@@ -140,7 +140,7 @@ namespace Gameplay.Player
             movement?.AddKnockback(direction, force);
         }
 
-        public void Revive(int healthAmount)
+        public void Revive(float healthAmount)
         {
             health?.Revive(healthAmount);
             movement?.ResetMovement();

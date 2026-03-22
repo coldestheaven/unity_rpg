@@ -9,8 +9,8 @@ namespace Gameplay.Player
     public class PlayerHealth : Framework.Base.MonoBehaviourBase, Framework.Interfaces.IDamageable
     {
         [Header("Stats")]
-        [SerializeField] private int maxHealth = 100;
-        [SerializeField] private int currentHealth;
+        [SerializeField] private float maxHealth = 100f;
+        [SerializeField] private float currentHealth;
 
         [Header("Damage")]
         [SerializeField] private float invincibilityTime = 1f;
@@ -19,8 +19,8 @@ namespace Gameplay.Player
         private bool isInvincible = false;
         private bool isDead = false;
 
-        public int CurrentHealth => currentHealth;
-        public int MaxHealth => maxHealth;
+        public float CurrentHealth => currentHealth;
+        public float MaxHealth => maxHealth;
         public bool IsDead => isDead;
 
         public event System.Action<int> OnHealthChanged;
@@ -36,8 +36,8 @@ namespace Gameplay.Player
         {
             if (isDead || isInvincible) return;
 
-            currentHealth = Mathf.Max(0, currentHealth - (int)damage);
-            OnHealthChanged?.Invoke(currentHealth);
+            currentHealth = Mathf.Max(0, currentHealth - damage);
+            OnHealthChanged?.Invoke((int)currentHealth);
 
             ApplyKnockback(attackerPosition);
             PlayHitEffect();
@@ -52,8 +52,8 @@ namespace Gameplay.Player
         {
             if (isDead) return;
 
-            currentHealth = Mathf.Min(maxHealth, currentHealth + (int)amount);
-            OnHealthChanged?.Invoke(currentHealth);
+            currentHealth = Mathf.Min(maxHealth, currentHealth + amount);
+            OnHealthChanged?.Invoke((int)currentHealth);
         }
 
         private void ApplyKnockback(Vector3 attackerPosition)
@@ -80,11 +80,11 @@ namespace Gameplay.Player
             Managers.GameStateManager.Instance?.ChangeState(Managers.GameState.GameOver);
         }
 
-        public void Revive(int healthAmount)
+        public void Revive(float healthAmount)
         {
             isDead = false;
             currentHealth = healthAmount;
-            OnHealthChanged?.Invoke(currentHealth);
+            OnHealthChanged?.Invoke((int)currentHealth);
         }
 
         public void ResetHealth()
@@ -92,7 +92,7 @@ namespace Gameplay.Player
             currentHealth = maxHealth;
             isDead = false;
             isInvincible = false;
-            OnHealthChanged?.Invoke(currentHealth);
+            OnHealthChanged?.Invoke((int)currentHealth);
         }
 
         private System.Collections.IEnumerator InvincibilityCoroutine()
