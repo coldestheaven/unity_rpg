@@ -1,59 +1,23 @@
 using UnityEngine;
+using Gameplay.Combat;
 
 namespace Gameplay.Player
 {
     /// <summary>
     /// 玩家健康系统
     /// </summary>
-    public class PlayerHealth : Framework.Base.MonoBehaviourBase, Framework.Interfaces.IDamageable
+    public class PlayerHealth : DamageableBase
     {
-        [Header("Stats")]
-        [SerializeField] private float maxHealth = 100f;
-        [SerializeField] private float currentHealth;
-
         [Header("Damage")]
         [SerializeField] private float invincibilityTime = 1f;
         [SerializeField] private GameObject hitEffect;
 
         private bool isInvincible = false;
-        private bool isDead = false;
 
-        public float CurrentHealth => currentHealth;
-        public float MaxHealth => maxHealth;
-        public bool IsDead => isDead;
+        public bool IsInvincible => isInvincible;
 
         public event System.Action<int> OnHealthChanged;
         public event System.Action OnDeath;
-
-        protected override void Awake()
-        {
-            base.Awake();
-            currentHealth = maxHealth;
-        }
-
-        public void TakeDamage(float damage, Vector3 attackerPosition = default)
-        {
-            if (isDead || isInvincible) return;
-
-            currentHealth = Mathf.Max(0, currentHealth - damage);
-            OnHealthChanged?.Invoke((int)currentHealth);
-
-            ApplyKnockback(attackerPosition);
-            PlayHitEffect();
-
-            if (currentHealth <= 0)
-            {
-                Die();
-            }
-        }
-
-        public void Heal(float amount)
-        {
-            if (isDead) return;
-
-            currentHealth = Mathf.Min(maxHealth, currentHealth + amount);
-            OnHealthChanged?.Invoke((int)currentHealth);
-        }
 
         private void ApplyKnockback(Vector3 attackerPosition)
         {
@@ -71,27 +35,21 @@ namespace Gameplay.Player
             }
         }
 
-        private void Die()
+        public override void Revive(float healthPercent = 1f)
         {
-            isDead = true;
-            OnDeath?.Invoke();
-
-            Managers.GameStateManager.Instance?.ChangeState(Managers.GameState.GameOver);
-        }
-
-        public void Revive(float healthAmount)
-        {
-            isDead = false;
-            currentHealth = healthAmount;
-            OnHealthChanged?.Invoke((int)currentHealth);
-        }
-
-        public void ResetHealth()
-        {
-            currentHealth = maxHealth;
-            isDead = false;
+            StopAllCoroutines();
             isInvincible = false;
-            OnHealthChanged?.Invoke((int)currentHealth);
+            IsDead = false;
+            currentHealth = Mathf.Clamp(healthPercent, 0f, maxHealth);
+            NotifyHealthChanged();
+            OnRevived();
+        }
+
+        public override void ResetHealth()
+        {
+            StopAllCoroutines();
+            isInvincible = false;
+            base.ResetHealth();
         }
 
         private System.Collections.IEnumerator InvincibilityCoroutine()
@@ -121,6 +79,34 @@ namespace Gameplay.Player
             }
 
             isInvincible = false;
+        }
+
+        protected override bool CanReceiveDamage(DamageInfo damageInfo)
+        {
+            return base.CanReceiveDamage(damageInfo) && !isInvincible;
+        }
+
+        protected override void NotifyHealthChanged()
+        {
+            OnHealthChanged?.Invoke(Mathf.RoundToInt(currentHealth));
+        }
+
+        protected override void OnDamageTaken(float damage, DamageInfo damageInfo)
+        {
+            ApplyKnockback(damageInfo.SourcePosition);
+            PlayHitEffect();
+            StartCoroutine(InvincibilityCoroutine());
+        }
+
+        protected override void OnRevived()
+        {
+            isInvincible = false;
+        }
+
+        protected override void OnDeathInternal()
+        {
+            OnDeath?.Invoke();
+            Managers.GameStateManager.Instance?.ChangeState(Managers.GameState.GameOver);
         }
     }
 }

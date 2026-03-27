@@ -1,4 +1,5 @@
 using UnityEngine;
+using Core.Stats;
 
 namespace RPG.Items
 {
@@ -108,6 +109,13 @@ namespace RPG.Items
         [Header("冷却")]
         public float cooldown = 0f;
 
+        [Header("Buff 属性")]
+        public float buffDuration = 5f;
+        public int buffAttackPower;
+        public int buffDefense;
+        public int buffHealth;
+        public float buffMoveSpeed;
+
         public enum ConsumableType
         {
             HealthPotion,
@@ -127,6 +135,9 @@ namespace RPG.Items
                 case ConsumableType.ManaPotion:
                     RestoreMana(user);
                     break;
+                case ConsumableType.Buff:
+                    ApplyBuff(user);
+                    break;
                 default:
                     Debug.Log($"Consumed: {itemName}");
                     break;
@@ -135,17 +146,17 @@ namespace RPG.Items
 
         private void HealPlayer(GameObject user)
         {
-            var health = user.GetComponent<RPG.Player.PlayerHealth>();
+            var health = user.GetComponent<Gameplay.Player.PlayerHealth>();
             if (health != null)
             {
-                int totalHeal = healAmount + (int)(health.MaxHealth * healPercentage);
+                float totalHeal = healAmount + (health.MaxHealth * healPercentage);
                 health.Heal(totalHeal);
 
                 RPG.Core.EventManager.Instance?.TriggerEvent("ItemUsed", new ItemUsedEventArgs
                 {
                     itemName = itemName,
                     itemType = itemType,
-                    value = totalHeal
+                    value = Mathf.RoundToInt(totalHeal)
                 });
             }
         }
@@ -154,6 +165,31 @@ namespace RPG.Items
         {
             // TODO: 实现法力系统
             Debug.Log($"Restored {manaRestore} mana");
+        }
+
+        private void ApplyBuff(GameObject user)
+        {
+            var buffController = user.GetComponent<Gameplay.Player.PlayerBuffController>();
+            if (buffController == null)
+            {
+                return;
+            }
+
+            buffController.ApplyBuff(
+                itemName,
+                new PlayerStatBlock(
+                    buffHealth,
+                    buffAttackPower,
+                    buffDefense,
+                    buffMoveSpeed),
+                buffDuration);
+
+            RPG.Core.EventManager.Instance?.TriggerEvent("ItemUsed", new ItemUsedEventArgs
+            {
+                itemName = itemName,
+                itemType = itemType,
+                value = Mathf.RoundToInt(buffDuration)
+            });
         }
     }
 

@@ -1,6 +1,7 @@
 using UnityEngine;
 using RPG.Core;
 using System;
+using Gameplay.Combat;
 
 namespace RPG.Skills
 {
@@ -203,7 +204,7 @@ namespace RPG.Skills
             if (skillInstance.UseSkill())
             {
                 ConsumeMana(manaCost);
-                ExecuteSkill(skillInstance.SkillData);
+                ExecuteSkill(skillInstance);
                 OnSkillUsed?.Invoke(slotIndex);
 
                 EventManager.Instance?.TriggerEvent("SkillUsed", new SkillUsedEventArgs
@@ -222,8 +223,10 @@ namespace RPG.Skills
         /// <summary>
         /// 执行技能逻辑
         /// </summary>
-        private void ExecuteSkill(SkillData skillData)
+        private void ExecuteSkill(SkillInstance skillInstance)
         {
+            SkillData skillData = skillInstance.SkillData;
+
             // 播放动画
             animator?.SetTrigger("Skill");
 
@@ -237,10 +240,10 @@ namespace RPG.Skills
             switch (skillData.skillType)
             {
                 case SkillType.Active:
-                    ExecuteActiveSkill(skillData);
+                    ExecuteActiveSkill(skillData, skillInstance.Level);
                     break;
                 case SkillType.Ultimate:
-                    ExecuteUltimateSkill(skillData);
+                    ExecuteUltimateSkill(skillData, skillInstance.Level);
                     break;
                 case SkillType.Toggle:
                     ExecuteToggleSkill(skillData);
@@ -251,7 +254,7 @@ namespace RPG.Skills
             }
         }
 
-        private void ExecuteActiveSkill(SkillData skillData)
+        private void ExecuteActiveSkill(SkillData skillData, int skillLevel)
         {
             // 创建技能效果
             if (skillData.skillEffectPrefab != null)
@@ -266,7 +269,7 @@ namespace RPG.Skills
                 var skillEffect = effect.GetComponent<SkillEffect>();
                 if (skillEffect != null)
                 {
-                    skillEffect.Initialize(skillData, playerTransform);
+                    skillEffect.Initialize(skillData, playerTransform, skillLevel);
                 }
 
                 // 自动销毁
@@ -274,13 +277,13 @@ namespace RPG.Skills
             }
 
             // 应用伤害
-            ApplySkillDamage(skillData);
+            ApplySkillDamage(skillData, skillLevel);
         }
 
-        private void ExecuteUltimateSkill(SkillData skillData)
+        private void ExecuteUltimateSkill(SkillData skillData, int skillLevel)
         {
             // 终极技能可能需要特殊处理
-            ExecuteActiveSkill(skillData);
+            ExecuteActiveSkill(skillData, skillLevel);
 
             // 触发终极技能事件
             EventManager.Instance?.TriggerEvent("UltimateSkillUsed", new SkillUsedEventArgs
@@ -297,19 +300,20 @@ namespace RPG.Skills
             Debug.Log($"Toggle skill: {skillData.skillName}");
         }
 
-        private void ApplySkillDamage(SkillData skillData)
+        private void ApplySkillDamage(SkillData skillData, int skillLevel)
         {
             // 根据目标类型寻找目标
             Collider2D[] targets = FindTargets(skillData);
+            DamageInfo damageInfo = new DamageInfo(
+                skillData.GetDamage(skillLevel),
+                transform.position,
+                gameObject,
+                CombatDamageTypeMapper.FromSkillDamageType(skillData.damageType),
+                CombatHitKind.Skill);
 
             foreach (var target in targets)
             {
-                var damageable = target.GetComponent<Core.IDamageable>();
-                if (damageable != null)
-                {
-                    int damage = skillData.GetDamage(1); // TODO: 使用技能等级
-                    damageable.TakeDamage(damage, transform.position);
-                }
+                CombatResolver.TryApplyDamage(target, damageInfo);
             }
         }
 

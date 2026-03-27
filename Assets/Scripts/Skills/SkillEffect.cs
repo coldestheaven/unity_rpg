@@ -1,5 +1,7 @@
 using UnityEngine;
 using RPG.Core;
+using Gameplay.Combat;
+using Framework.Interfaces;
 
 namespace RPG.Skills
 {
@@ -10,14 +12,21 @@ namespace RPG.Skills
     {
         protected SkillData skillData;
         protected Transform caster;
+        protected int skillLevel = 1;
 
         protected Rigidbody2D rb;
         protected Collider2D col;
 
         public virtual void Initialize(SkillData data, Transform casterTransform)
         {
+            Initialize(data, casterTransform, 1);
+        }
+
+        public virtual void Initialize(SkillData data, Transform casterTransform, int currentSkillLevel)
+        {
             skillData = data;
             caster = casterTransform;
+            skillLevel = Mathf.Max(1, currentSkillLevel);
 
             rb = GetComponent<Rigidbody2D>();
             col = GetComponent<Collider2D>();
@@ -65,13 +74,21 @@ namespace RPG.Skills
         /// <summary>
         /// 对目标造成伤害
         /// </summary>
-        protected void DealDamage(IDamageable target, Vector2 attackerPosition)
+        protected void DealDamage(IDamageable target, Vector2 attackerPosition, bool isPeriodic = false)
         {
-            if (target != null)
-            {
-                int damage = skillData.GetDamage(1); // TODO: 使用技能等级
-                target.TakeDamage(damage, attackerPosition);
-            }
+            DamageInfo damageInfo = BuildDamageInfo(skillData.GetDamage(skillLevel), attackerPosition, isPeriodic);
+            CombatResolver.TryApplyDamage(target, damageInfo);
+        }
+
+        protected DamageInfo BuildDamageInfo(float amount, Vector3 attackerPosition, bool isPeriodic = false)
+        {
+            return new DamageInfo(
+                amount,
+                attackerPosition,
+                caster != null ? caster.gameObject : null,
+                CombatDamageTypeMapper.FromSkillDamageType(skillData.damageType),
+                isPeriodic ? CombatHitKind.DamageOverTime : CombatHitKind.Skill,
+                isPeriodic);
         }
 
         /// <summary>
@@ -205,7 +222,7 @@ namespace RPG.Skills
                     IDamageable damageable = hit.GetComponent<IDamageable>();
                     if (damageable != null)
                     {
-                        DealDamage(damageable, caster.position);
+                        DealDamage(damageable, caster.position, true);
                     }
                 }
             }
@@ -267,9 +284,8 @@ namespace RPG.Skills
                         // 根据距离计算伤害
                         float distance = Vector2.Distance(transform.position, hit.transform.position);
                         float damageMultiplier = 1f - (distance / maxRadius);
-                        int damage = Mathf.RoundToInt(damagePerSecond * damageMultiplier);
-
-                        damageable.TakeDamage(damage, caster.position);
+                        float damage = damagePerSecond * damageMultiplier;
+                        CombatResolver.TryApplyDamage(damageable, BuildDamageInfo(damage, caster.position, true));
                     }
                 }
             }

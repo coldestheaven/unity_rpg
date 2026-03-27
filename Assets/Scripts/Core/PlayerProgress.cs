@@ -1,5 +1,6 @@
 using UnityEngine;
 using System;
+using Framework.Events;
 
 namespace RPG.Core
 {
@@ -52,11 +53,13 @@ namespace RPG.Core
         public event Action<int> OnLevelUp;
         public event Action<float> OnExperienceGained;
         public event Action<int> OnGoldGained;
+        public event Action<PlayerProgress> OnProgressChanged;
 
         protected override void Awake()
         {
             base.Awake();
             Progress = new PlayerProgress();
+            NotifyProgressChanged();
         }
 
         /// <summary>
@@ -89,6 +92,8 @@ namespace RPG.Core
 
                 Debug.Log($"Level up! Current level: {Progress.level}");
             }
+
+            NotifyProgressChanged();
         }
 
         /// <summary>
@@ -104,6 +109,8 @@ namespace RPG.Core
                 currentGold = Progress.gold,
                 changeAmount = amount
             });
+
+            NotifyProgressChanged();
         }
 
         /// <summary>
@@ -144,6 +151,12 @@ namespace RPG.Core
         public void ResetProgress()
         {
             Progress = new PlayerProgress();
+            NotifyProgressChanged();
+        }
+
+        public void NotifyProgressChanged()
+        {
+            OnProgressChanged?.Invoke(Progress);
         }
     }
 

@@ -30,27 +30,29 @@ Assets/
 | 文件 | 内容 |
 |------|------|
 | `Base/BaseClasses.cs` | `MonoBehaviourBase`、`SingletonMonoBehaviour<T>` |
-| `Core/Events/EventManager.cs` | 全局事件总线 |
+| `Base/MoveableBase.cs` | 可移动实体抽象基类，实现 `IMovable` |
+| `Base/StateMachineBase.cs` | 泛型状态机基类，包装 `Framework.Core.StateMachine` |
+| `Core/Events/EventManager.cs` | 全局字符串事件总线 |
 | `Core/Events/EventDelegates.cs` | 事件委托类型定义 |
-| `Core/Patterns/Singleton.cs` | 泛型 Singleton<T> |
+| `Core/Patterns/Singleton.cs` | 线程安全 MonoBehaviour `Singleton<T>` |
 | `Core/Patterns/ObjectPool.cs` | 通用对象池 |
-| `Core/StateMachine/StateMachine.cs` | 通用状态机基类 |
+| `Core/StateMachine/StateMachine.cs` | 通用状态机（Initialize/TransitionTo/Update） |
 | `Core/Utils/Extensions.cs` | 扩展方法 |
 | `Interfaces/IGameInterfaces.cs` | `IDamageable`、`IDamageReceiver`、`IKillable`、`IMovable`、`IInteractable` |
 
 ## Core 层
 
-游戏核心基类与跨系统共享结构体，处于框架层与 Gameplay 层之间。
+跨系统共享的游戏业务结构体与遗留兼容桥。`Core.Base.*` 已清空，纯抽象基类已上移至 `Framework.Base`。
 
 | 文件 | 内容 |
 |------|------|
-| `Base/DamageableBase.cs` | 可受伤实体抽象基类，实现 `IDamageable` + `IDamageReceiver` |
-| `Base/MoveableBase.cs` | 可移动实体基类 |
-| `Base/StateMachineBase.cs` | 状态机基类 |
 | `Stats/PlayerStatBlock.cs` | `PlayerStatBlock` struct、`IPlayerStatModifierSource` 接口 |
-| `PlayerProgress.cs` | 玩家进度数据（等级、经验、金币） |
-| `SaveSystem.cs` | 存档读写 |
-| `GameState.cs` | 游戏状态枚举 |
+| `PlayerProgress.cs` | 玩家进度数据（等级、经验、金币），`PlayerProgressManager` |
+| `SaveSystem.cs` | JSON 存档读写，`RPG.Core.SaveSystem` |
+| `GameState.cs` | 游戏状态枚举与 `RPG.Core.GameStateManager`（兼容桥） |
+| `GameManager.cs` | `RPG.Core.GameManager`（兼容桥） |
+| `CharacterStats.cs` | 旧 int 型属性包（遗留，不新增依赖） |
+| `Singleton.cs` | `RPG.Core.Singleton<T>` 遗留单例基类，新代码用 `Framework.Base.SingletonMonoBehaviour<T>` |
 
 ## Gameplay 层
 
@@ -105,6 +107,8 @@ PlayerBuffController           ← 管理限时 buff，实现 IPlayerStatModifie
 | 文件 | 职责 |
 |------|------|
 | `DamageInfo.cs` | `DamageInfo` struct、`CombatDamageType` 枚举、`CombatHitKind` 枚举 |
+| `DamageableBase.cs` | 可受伤实体抽象基类，实现 `IDamageable` + `IDamageReceiver`（原 `Core.Base`） |
+| `AttackComponent.cs` | 冷却门控攻击抽象组件，`OnAttackStarted/Finished` 事件（原 `Core.Components`） |
 | `CombatResolver.cs` | 静态伤害入口：优先调用 `IDamageReceiver`，回退 `IDamageable` |
 | `Health.cs` | 通用实体生命值组件（继承 `DamageableBase`） |
 | `Hitbox.cs` | 碰撞体伤害触发，构造 `DamageInfo` 交由 `CombatResolver` |

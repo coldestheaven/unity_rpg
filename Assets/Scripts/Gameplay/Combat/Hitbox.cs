@@ -28,9 +28,15 @@ namespace Gameplay.Combat
         {
             if (((1 << other.gameObject.layer) & targetLayer) != 0)
             {
-                if (other.TryGetComponent(out Framework.Interfaces.IDamageable damageable))
+                DamageInfo damageInfo = new DamageInfo(
+                    damage,
+                    transform.position,
+                    gameObject,
+                    CombatDamageType.Physical,
+                    CombatHitKind.Hitbox);
+
+                if (CombatResolver.TryApplyDamage(other, damageInfo))
                 {
-                    damageable.TakeDamage(damage, transform.position);
                     OnHit(other);
 
                     if (destroyOnHit)

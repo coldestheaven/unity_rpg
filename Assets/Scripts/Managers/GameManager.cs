@@ -31,6 +31,7 @@ namespace Managers
 
             isGamePaused = true;
             Time.timeScale = 0f;
+            GameStateManager.Instance?.ChangeState(GameState.Paused);
             Framework.Events.EventManager.Instance.TriggerEvent(Framework.Events.GameEvents.GAME_PAUSED);
             Debug.Log("Game Paused");
         }
@@ -41,6 +42,7 @@ namespace Managers
 
             isGamePaused = false;
             Time.timeScale = 1f;
+            GameStateManager.Instance?.ChangeState(GameState.Playing);
             Framework.Events.EventManager.Instance.TriggerEvent(Framework.Events.GameEvents.GAME_RESUMED);
             Debug.Log("Game Resumed");
         }

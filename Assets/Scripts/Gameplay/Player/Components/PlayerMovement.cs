@@ -23,8 +23,7 @@ namespace Gameplay.Player
         [SerializeField] private float groundCheckRadius = 0.2f;
 
         private Rigidbody2D rb;
-        private PlayerInputController input;
-        private SpriteRenderer spriteRenderer;
+        private PlayerController controller;
 
         private bool isGrounded = false;
         private int currentJumps = 0;
@@ -32,6 +31,9 @@ namespace Gameplay.Player
 
         public bool IsGrounded => isGrounded;
         public bool IsMoving => rb != null && Mathf.Abs(rb.velocity.x) > 0.1f;
+        public bool CanMove => canMove;
+        public float VerticalVelocity => rb != null ? rb.velocity.y : 0f;
+        public float MoveSpeed => moveSpeed;
 
         public event System.Action OnJump;
         public event System.Action OnLand;
@@ -40,8 +42,7 @@ namespace Gameplay.Player
         {
             base.Awake();
             rb = GetComponent<Rigidbody2D>();
-            input = GetComponent<PlayerInputController>();
-            spriteRenderer = GetComponent<SpriteRenderer>();
+            controller = GetComponent<PlayerController>();
         }
 
         protected override void Update()
@@ -63,13 +64,11 @@ namespace Gameplay.Player
 
         public void Move(Vector3 direction = default)
         {
-            if (input == null) return;
+            if (controller == null || rb == null) return;
 
             Vector2 velocity = rb.velocity;
-            velocity.x = input.MoveInput.x * moveSpeed;
+            velocity.x = controller.MoveInput.x * moveSpeed;
             rb.velocity = velocity;
-
-            HandleSpriteDirection();
         }
 
         public void Stop()
@@ -94,7 +93,7 @@ namespace Gameplay.Player
 
         private void HandleJumpInput()
         {
-            if (input != null && input.JumpPressed && canMove)
+            if (controller != null && controller.JumpPressed && canMove)
             {
                 TryJump();
             }
@@ -121,17 +120,9 @@ namespace Gameplay.Player
             {
                 rb.velocity += Vector2.up * Physics2D.gravity.y * (fallMultiplier - 1) * Time.fixedDeltaTime;
             }
-            else if (rb.velocity.y > 0 && input != null && !input.JumpHeld)
+            else if (rb.velocity.y > 0 && controller != null && !controller.JumpHeld)
             {
                 rb.velocity += Vector2.up * Physics2D.gravity.y * (fallMultiplier - 1) * Time.fixedDeltaTime;
-            }
-        }
-
-        private void HandleSpriteDirection()
-        {
-            if (spriteRenderer != null && input != null && input.MoveInput.x != 0)
-            {
-                spriteRenderer.flipX = input.MoveInput.x < 0;
             }
         }
 
@@ -141,6 +132,21 @@ namespace Gameplay.Player
             {
                 rb.AddForce(direction * force, ForceMode2D.Impulse);
             }
+        }
+
+        public void SetCanMove(bool value)
+        {
+            canMove = value;
+
+            if (!canMove)
+            {
+                Stop();
+            }
+        }
+
+        public void SetMoveSpeed(float value)
+        {
+            moveSpeed = Mathf.Max(0f, value);
         }
 
         public void ResetMovement()

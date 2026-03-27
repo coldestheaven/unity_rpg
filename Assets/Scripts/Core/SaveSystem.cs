@@ -2,8 +2,9 @@ using UnityEngine;
 using System;
 using System.IO;
 using System.Collections.Generic;
-using RPG.Player;
+using Framework.Events;
 using RPG.Items;
+using Gameplay.Player;
 
 namespace RPG.Core
 {
@@ -161,22 +162,11 @@ namespace RPG.Core
             // 玩家属性
             if (PlayerController.Instance != null)
             {
-                var playerHealth = PlayerController.Instance.GetComponent<PlayerHealth>();
-                var playerState = PlayerController.Instance.GetComponent<PlayerState>();
-
-                if (playerHealth != null)
-                {
-                    data.maxHealth = playerHealth.MaxHealth;
-                    data.currentHealth = playerHealth.CurrentHealth;
-                }
-
-                if (playerState != null && playerState.CurrentData != null)
-                {
-                    data.attackPower = playerState.CurrentData.attackPower;
-                    data.defense = playerState.CurrentData.defense;
-                    data.moveSpeed = playerState.CurrentData.moveSpeed;
-                }
-
+                data.maxHealth = Mathf.RoundToInt(PlayerController.Instance.Health.MaxHealth);
+                data.currentHealth = Mathf.RoundToInt(PlayerController.Instance.Health.CurrentHealth);
+                data.attackPower = Mathf.RoundToInt(PlayerController.Instance.AttackDamage);
+                data.defense = Mathf.RoundToInt(PlayerController.Instance.Defense);
+                data.moveSpeed = PlayerController.Instance.MoveSpeed;
                 data.playerPosition = PlayerController.Instance.transform.position;
             }
 
@@ -252,25 +242,17 @@ namespace RPG.Core
                 progressManager.Progress.experience = data.playerExperience;
                 progressManager.Progress.experienceToNextLevel = data.experienceToNextLevel;
                 progressManager.Progress.gold = data.gold;
+                progressManager.NotifyProgressChanged();
             }
 
             // 玩家属性
             if (PlayerController.Instance != null)
             {
-                var playerHealth = PlayerController.Instance.GetComponent<PlayerHealth>();
-                var playerState = PlayerController.Instance.GetComponent<PlayerState>();
-
-                if (playerHealth != null)
-                {
-                    playerHealth.SetMaxHealth(data.maxHealth);
-                }
-
-                if (playerState != null && playerState.CurrentData != null)
-                {
-                    playerState.CurrentData.attackPower = data.attackPower;
-                    playerState.CurrentData.defense = data.defense;
-                    playerState.CurrentData.moveSpeed = data.moveSpeed;
-                }
+                PlayerController.Instance.SetMaxHealth(data.maxHealth);
+                PlayerController.Instance.Health.Revive(data.currentHealth);
+                PlayerController.Instance.SetAttackDamage(data.attackPower);
+                PlayerController.Instance.SetDefense(data.defense);
+                PlayerController.Instance.SetMoveSpeed(data.moveSpeed);
             }
 
             // 场景加载

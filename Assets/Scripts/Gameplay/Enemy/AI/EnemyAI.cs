@@ -14,41 +14,90 @@ namespace Gameplay.Enemy
     /// <summary>
     /// 敌人AI系统
     /// </summary>
+    [RequireComponent(typeof(Rigidbody2D))]
     public class EnemyAI : Framework.Base.MonoBehaviourBase
     {
         [Header("Movement")]
         [SerializeField] private float moveSpeed = 3f;
         [SerializeField] private float chaseSpeed = 5f;
         [SerializeField] private float attackRange = 1.5f;
-        [SerializeField] private float patrolRange = 5f;
 
         [Header("Patrol")]
         [SerializeField] private Transform[] patrolPoints;
+        [SerializeField] private float idleDuration = 0.75f;
         private int currentPatrolIndex = 0;
+        private float idleTimer;
+        private float facingDirectionX = 1f;
 
         private EnemyState currentState = EnemyState.Idle;
         private GameObject target;
-        private Vector3 startPosition;
         private Rigidbody2D rb;
+        private EnemyAttack attack;
+        private Gameplay.Combat.Health health;
 
         public EnemyState CurrentState => currentState;
+        public bool IsMoving => currentState == EnemyState.Patrol || currentState == EnemyState.Chase;
+        public bool IsAttacking => currentState == EnemyState.Attack && attack != null && attack.IsAttacking;
+        public float FacingDirectionX => facingDirectionX;
+        public Vector2 Velocity => rb != null ? rb.velocity : Vector2.zero;
 
         protected override void Awake()
         {
             base.Awake();
+            EnsurePresentationComponent();
             rb = GetComponent<Rigidbody2D>();
-            startPosition = transform.position;
+            attack = GetComponent<EnemyAttack>();
+            health = GetComponent<Gameplay.Combat.Health>();
+        }
+
+        private void EnsurePresentationComponent()
+        {
+            if (GetComponent<EnemyPresenter>() == null && GetComponent<Animator>() != null)
+            {
+                gameObject.AddComponent<EnemyPresenter>();
+            }
+        }
+
+        private void OnEnable()
+        {
+            if (health != null)
+            {
+                health.OnDeath += HandleDeath;
+            }
+
+        }
+
+        private void OnDisable()
+        {
+            if (health != null)
+            {
+                health.OnDeath -= HandleDeath;
+            }
+
         }
 
         protected override void Update()
         {
             base.Update();
+            if (health != null && health.IsDead)
+            {
+                ChangeState(EnemyState.Dead);
+                return;
+            }
+
             UpdateAI();
         }
 
         protected override void FixedUpdate()
         {
             base.FixedUpdate();
+
+            if (currentState == EnemyState.Dead)
+            {
+                rb.velocity = Vector2.zero;
+                return;
+            }
+
             FixedUpdateAI();
         }
 
@@ -83,7 +132,10 @@ namespace Gameplay.Enemy
             switch (currentState)
             {
                 case EnemyState.Patrol:
-                    MoveTo(patrolPoints[currentPatrolIndex].position, moveSpeed);
+                    if (HasPatrolPoints())
+                    {
+                        MoveTo(patrolPoints[currentPatrolIndex].position, moveSpeed);
+                    }
                     break;
                 case EnemyState.Chase:
                     if (target != null)
@@ -100,14 +152,24 @@ namespace Gameplay.Enemy
             {
                 ChangeState(EnemyState.Chase);
             }
-            else
+            else if (HasPatrolPoints())
             {
-                ChangeState(EnemyState.Patrol);
+                idleTimer += Time.deltaTime;
+                if (idleTimer >= idleDuration)
+                {
+                    ChangeState(EnemyState.Patrol);
+                }
             }
         }
 
         private void UpdatePatrol()
         {
+            if (!HasPatrolPoints())
+            {
+                ChangeState(EnemyState.Idle);
+                return;
+            }
+
             if (target != null)
             {
                 ChangeState(EnemyState.Chase);
@@ -124,7 +186,7 @@ namespace Gameplay.Enemy
         {
             if (target == null)
             {
-                ChangeState(EnemyState.Patrol);
+                ChangeState(HasPatrolPoints() ? EnemyState.Patrol : EnemyState.Idle);
                 return;
             }
 
@@ -150,9 +212,9 @@ namespace Gameplay.Enemy
             {
                 ChangeState(EnemyState.Chase);
             }
-            else
+            else if (attack != null && attack.CanAttack)
             {
-                PerformAttack();
+                attack.TryAttackTarget(target);
             }
         }
 
@@ -160,11 +222,16 @@ namespace Gameplay.Enemy
         {
             Vector3 direction = (targetPosition - transform.position).normalized;
             rb.velocity = direction * speed;
+
+            if (Mathf.Abs(direction.x) > 0.01f)
+            {
+                facingDirectionX = direction.x;
+            }
         }
 
-        private void PerformAttack()
+        private bool HasPatrolPoints()
         {
-            // Attack logic here
+            return patrolPoints != null && patrolPoints.Length > 0;
         }
 
         private void ChangeState(EnemyState newState)
@@ -172,6 +239,13 @@ namespace Gameplay.Enemy
             if (currentState == newState) return;
 
             currentState = newState;
+            rb.velocity = Vector2.zero;
+            idleTimer = 0f;
+        }
+
+        private void HandleDeath()
+        {
+            ChangeState(EnemyState.Dead);
             rb.velocity = Vector2.zero;
         }
     }

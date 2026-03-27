@@ -1,4 +1,5 @@
 using UnityEngine;
+using Gameplay.Combat;
 
 namespace Gameplay.Player
 {
@@ -21,12 +22,14 @@ namespace Gameplay.Player
 
         public bool IsAttacking => isAttacking;
         public int CurrentDamage => baseDamage;
+        public bool CanAttack => !isAttacking && Time.time >= lastAttackTime + attackCooldown;
 
         public event System.Action<int> OnAttack;
+        public event System.Action OnAttackFinished;
 
         public void Attack()
         {
-            if (isAttacking || Time.time < lastAttackTime + attackCooldown) return;
+            if (!CanAttack) return;
 
             isAttacking = true;
             lastAttackTime = Time.time;
@@ -38,14 +41,18 @@ namespace Gameplay.Player
 
         private void PerformAttack()
         {
+            DamageInfo damageInfo = new DamageInfo(
+                baseDamage,
+                transform.position,
+                gameObject,
+                CombatDamageType.Physical,
+                CombatHitKind.Attack);
+
             Collider2D[] hitEnemies = Physics2D.OverlapCircleAll(attackPoint.position, attackRange, enemyLayer);
 
             foreach (Collider2D enemy in hitEnemies)
             {
-                if (enemy.TryGetComponent(out Framework.Interfaces.IDamageable damageable))
-                {
-                    damageable.TakeDamage(baseDamage, transform.position);
-                }
+                CombatResolver.TryApplyDamage(enemy, damageInfo);
             }
 
             OnAttack?.Invoke(baseDamage);
@@ -55,11 +62,18 @@ namespace Gameplay.Player
         {
             yield return new WaitForSeconds(attackCooldown);
             isAttacking = false;
+            OnAttackFinished?.Invoke();
         }
 
         public void SetAttackDamage(int damage)
         {
             baseDamage = damage;
+        }
+
+        public void ResetCombat()
+        {
+            isAttacking = false;
+            lastAttackTime = 0f;
         }
 
         private void OnDrawGizmosSelected()

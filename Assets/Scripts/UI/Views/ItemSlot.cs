@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using UI.Presenters;
 
 namespace UI.Views
 {
@@ -18,38 +19,19 @@ namespace UI.Views
         [SerializeField] private Color defaultColor = Color.white;
         [SerializeField] private Color selectedColor = Color.yellow;
 
-        private string itemId;
-        private int amount;
+        private int slotIndex;
         private bool isEmpty = true;
 
-        public string ItemId => itemId;
-        public int Amount => amount;
         public bool IsEmpty => isEmpty;
 
-        public event System.Action OnSlotClicked;
+        public event System.Action<int> OnSlotClicked;
 
-        public void Setup(string itemId, int amount)
+        public void Setup(InventorySlotViewData viewData)
         {
-            this.itemId = itemId;
-            this.amount = amount;
-            this.isEmpty = string.IsNullOrEmpty(itemId) || amount <= 0;
+            slotIndex = viewData.SlotIndex;
+            isEmpty = viewData.IsEmpty;
 
-            UpdateVisuals();
-        }
-
-        public void SetAmount(int newAmount)
-        {
-            amount = newAmount;
-            isEmpty = amount <= 0;
-            UpdateVisuals();
-        }
-
-        public void Clear()
-        {
-            itemId = null;
-            amount = 0;
-            isEmpty = true;
-            UpdateVisuals();
+            UpdateVisuals(viewData);
         }
 
         public void SetSelected(bool selected)
@@ -65,7 +47,7 @@ namespace UI.Views
             }
         }
 
-        private void UpdateVisuals()
+        private void UpdateVisuals(InventorySlotViewData viewData)
         {
             if (isEmpty)
             {
@@ -82,19 +64,19 @@ namespace UI.Views
             {
                 if (icon != null)
                 {
-                    icon.enabled = true;
-                    // Load icon sprite from DataManager
+                    icon.enabled = viewData.Icon != null;
+                    icon.sprite = viewData.Icon;
                 }
                 if (amountText != null)
                 {
-                    amountText.text = amount > 1 ? amount.ToString() : "";
+                    amountText.text = viewData.AmountText;
                 }
             }
         }
 
         public void OnClick()
         {
-            OnSlotClicked?.Invoke();
+            OnSlotClicked?.Invoke(slotIndex);
         }
     }
 }

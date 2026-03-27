@@ -10,6 +10,11 @@ namespace Framework.Interfaces
         float MaxHealth { get; }
     }
 
+    public interface IDamageReceiver
+    {
+        void ReceiveDamage(Gameplay.Combat.DamageInfo damageInfo);
+    }
+
     public interface IInteractable
     {
         void Interact(GameObject interactor);

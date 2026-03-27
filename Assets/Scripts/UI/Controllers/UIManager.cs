@@ -18,6 +18,7 @@ namespace UI.Controllers
         [SerializeField] private UIPanelReference[] panels;
 
         private Dictionary<string, UIPanelBase> panelDictionary;
+        private HUDController cachedHudController;
 
         protected override void Awake()
         {
@@ -47,6 +48,8 @@ namespace UI.Controllers
                     panelDictionary[panelName] = panel;
                 }
             }
+
+            cachedHudController = FindAnyObjectByType<HUDController>();
         }
 
         public void ShowPanel(string panelName)
@@ -101,6 +104,55 @@ namespace UI.Controllers
                 return panel as T;
             }
             return null;
+        }
+
+        public void ShowPauseMenu()
+        {
+            ShowPanel("PauseMenu");
+        }
+
+        public void HidePauseMenu()
+        {
+            HidePanel("PauseMenu");
+        }
+
+        public void ShowGameOverScreen()
+        {
+            ShowPanel("GameOverMenu");
+        }
+
+        public void HideGameOverScreen()
+        {
+            HidePanel("GameOverMenu");
+        }
+
+        public void ShowLevelUpEffect(int level)
+        {
+            ShowPanel("LevelUpNotification");
+            cachedHudController ??= FindAnyObjectByType<HUDController>();
+            cachedHudController?.UpdateLevel(level);
+        }
+
+        public void UpdatePlayerStats()
+        {
+            cachedHudController ??= FindAnyObjectByType<HUDController>();
+            cachedHudController?.UpdateHUD();
+        }
+
+        public void UpdateExperienceUI(float current, float max)
+        {
+            cachedHudController ??= FindAnyObjectByType<HUDController>();
+            cachedHudController?.UpdateExperienceUI(current, max);
+        }
+
+        public void ShowStatusIcon(int index)
+        {
+            Debug.Log($"ShowStatusIcon requested for index {index}, but no status icon presenter is configured.");
+        }
+
+        public void HideStatusIcon(int index)
+        {
+            Debug.Log($"HideStatusIcon requested for index {index}, but no status icon presenter is configured.");
         }
     }
 }

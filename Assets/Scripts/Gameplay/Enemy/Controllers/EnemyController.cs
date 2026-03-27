@@ -10,6 +10,8 @@ namespace Gameplay.Enemy
         [Header("References")]
         [SerializeField] private EnemyAI enemyAI;
         [SerializeField] private Gameplay.Combat.Health health;
+        [SerializeField] private EnemyAttack attack;
+        [SerializeField] private EnemyReward reward;
 
         [Header("Settings")]
         [SerializeField] private float detectionRange = 5f;
@@ -18,6 +20,10 @@ namespace Gameplay.Enemy
         private GameObject player;
 
         public GameObject Player => player;
+        public Gameplay.Combat.Health Health => health;
+        public EnemyAttack Attack => attack;
+        public float DetectionRange => detectionRange;
+        public bool HasTarget => player != null;
 
         protected override void Awake()
         {
@@ -25,11 +31,30 @@ namespace Gameplay.Enemy
 
             enemyAI = GetComponent<EnemyAI>();
             health = GetComponent<Gameplay.Combat.Health>();
+            attack = GetComponent<EnemyAttack>();
+            reward = GetComponent<EnemyReward>();
+        }
+
+        private void OnEnable()
+        {
+            if (health != null)
+            {
+                health.OnDeath += HandleDeath;
+            }
+        }
+
+        private void OnDisable()
+        {
+            if (health != null)
+            {
+                health.OnDeath -= HandleDeath;
+            }
         }
 
         protected override void Update()
         {
             base.Update();
+            if (health != null && health.IsDead) return;
             DetectPlayer();
         }
 
@@ -39,7 +64,7 @@ namespace Gameplay.Enemy
 
             if (hits.Length > 0)
             {
-                player = hits[0].gameObject;
+                player = GetClosestTarget(hits);
                 enemyAI?.SetTarget(player);
             }
             else
@@ -47,6 +72,35 @@ namespace Gameplay.Enemy
                 player = null;
                 enemyAI?.SetTarget(null);
             }
+        }
+
+        private GameObject GetClosestTarget(Collider2D[] hits)
+        {
+            GameObject bestTarget = null;
+            float bestDistance = float.MaxValue;
+
+            foreach (var hit in hits)
+            {
+                if (hit == null)
+                {
+                    continue;
+                }
+
+                float distance = Vector2.Distance(transform.position, hit.transform.position);
+                if (distance < bestDistance)
+                {
+                    bestDistance = distance;
+                    bestTarget = hit.gameObject;
+                }
+            }
+
+            return bestTarget;
+        }
+
+        private void HandleDeath()
+        {
+            player = null;
+            enemyAI?.SetTarget(null);
         }
 
         private void OnDrawGizmosSelected()

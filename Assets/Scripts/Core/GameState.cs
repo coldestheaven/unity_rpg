@@ -1,4 +1,5 @@
 using UnityEngine;
+using Framework.Events;
 
 namespace RPG.Core
 {
@@ -23,6 +24,7 @@ namespace RPG.Core
     {
         private GameState currentState;
         private GameState previousState;
+        private Managers.GameStateManager runtimeStateManager;
 
         public GameState CurrentState => currentState;
         public GameState PreviousState => previousState;
@@ -33,13 +35,49 @@ namespace RPG.Core
         protected override void Awake()
         {
             base.Awake();
-            SetState(GameState.MainMenu);
+            runtimeStateManager = Managers.GameStateManager.Instance;
+
+            if (runtimeStateManager != null)
+            {
+                runtimeStateManager.OnStateChanged += HandleRuntimeStateChanged;
+                HandleRuntimeStateChanged(runtimeStateManager.CurrentState);
+            }
+            else
+            {
+                SetState(GameState.MainMenu);
+            }
+        }
+
+        private void OnDestroy()
+        {
+            if (runtimeStateManager != null)
+            {
+                runtimeStateManager.OnStateChanged -= HandleRuntimeStateChanged;
+            }
         }
 
         /// <summary>
         /// 设置游戏状态
         /// </summary>
         public void SetState(GameState newState)
+        {
+            if (currentState == newState) return;
+
+            if (runtimeStateManager != null && TryMapToRuntime(newState, out Managers.GameState runtimeState))
+            {
+                runtimeStateManager.ChangeState(runtimeState);
+                return;
+            }
+
+            ApplyState(newState);
+        }
+
+        private void HandleRuntimeStateChanged(Managers.GameState newState)
+        {
+            ApplyState(MapFromRuntime(newState));
+        }
+
+        private void ApplyState(GameState newState)
         {
             if (currentState == newState) return;
 
@@ -57,6 +95,55 @@ namespace RPG.Core
             });
 
             Debug.Log($"Game state changed: {oldState} -> {newState}");
+        }
+
+        private bool TryMapToRuntime(GameState state, out Managers.GameState runtimeState)
+        {
+            switch (state)
+            {
+                case GameState.MainMenu:
+                    runtimeState = Managers.GameState.MainMenu;
+                    return true;
+                case GameState.Loading:
+                    runtimeState = Managers.GameState.Loading;
+                    return true;
+                case GameState.Playing:
+                    runtimeState = Managers.GameState.Playing;
+                    return true;
+                case GameState.Paused:
+                    runtimeState = Managers.GameState.Paused;
+                    return true;
+                case GameState.GameOver:
+                    runtimeState = Managers.GameState.GameOver;
+                    return true;
+                case GameState.Victory:
+                    runtimeState = Managers.GameState.Victory;
+                    return true;
+                default:
+                    runtimeState = Managers.GameState.Playing;
+                    return false;
+            }
+        }
+
+        private GameState MapFromRuntime(Managers.GameState state)
+        {
+            switch (state)
+            {
+                case Managers.GameState.MainMenu:
+                    return GameState.MainMenu;
+                case Managers.GameState.Loading:
+                    return GameState.Loading;
+                case Managers.GameState.Playing:
+                    return GameState.Playing;
+                case Managers.GameState.Paused:
+                    return GameState.Paused;
+                case Managers.GameState.GameOver:
+                    return GameState.GameOver;
+                case Managers.GameState.Victory:
+                    return GameState.Victory;
+                default:
+                    return GameState.Playing;
+            }
         }
 
         /// <summary>
@@ -110,8 +197,8 @@ namespace RPG.Core
         {
             if (currentState == GameState.Playing)
             {
+                Managers.GameManager.Instance?.PauseGame();
                 SetState(GameState.Paused);
-                Time.timeScale = 0f;
             }
         }
 
@@ -122,8 +209,8 @@ namespace RPG.Core
         {
             if (currentState == GameState.Paused)
             {
+                Managers.GameManager.Instance?.ResumeGame();
                 SetState(GameState.Playing);
-                Time.timeScale = 1f;
             }
         }
 

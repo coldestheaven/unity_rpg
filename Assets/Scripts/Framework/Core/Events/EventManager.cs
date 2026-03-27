@@ -1,10 +1,10 @@
-// Framework/Core/Events/EventManager.cs
+using Framework.Core.Patterns;
+using System;
+using System.Collections.Generic;
+using UnityEngine;
+
 namespace Framework.Events
 {
-    using UnityEngine;
-    using System;
-    using System.Collections.Generic;
-
     public class EventManager : Singleton<EventManager>
     {
         private Dictionary<string, List<Action<object>>> eventDictionary = new Dictionary<string, List<Action<object>>>();

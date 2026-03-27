@@ -73,7 +73,7 @@ namespace UI.Views
 
             if (healthText != null && showText)
             {
-                healthText.text = $"{health.CurrentHealth}/{health.MaxHealth}";
+                healthText.text = $"{Mathf.RoundToInt(health.CurrentHealth)}/{Mathf.RoundToInt(health.MaxHealth)}";
             }
 
             if (fillImage != null && changeColorOnLowHealth)

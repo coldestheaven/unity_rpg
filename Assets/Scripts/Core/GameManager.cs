@@ -1,6 +1,8 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using RPG.UI;
+using Framework.Events;
+using Gameplay.Player;
+using UI.Controllers;
 
 namespace RPG.Core
 {
@@ -22,8 +24,8 @@ namespace RPG.Core
         public int baseEnemyDamage = 10;
 
         // 兼容旧接口的属性(内部使用新的管理器)
-        public int playerHealth => PlayerController.Instance?.GetComponent<Player.PlayerHealth>()?.CurrentHealth ?? 0;
-        public int playerMaxHealth => PlayerController.Instance?.GetComponent<Player.PlayerHealth>()?.MaxHealth ?? 0;
+        public int playerHealth => PlayerController.Instance != null ? Mathf.RoundToInt(PlayerController.Instance.Health.CurrentHealth) : 0;
+        public int playerMaxHealth => PlayerController.Instance != null ? Mathf.RoundToInt(PlayerController.Instance.Health.MaxHealth) : 0;
         public int playerLevel => progressManager?.GetLevel() ?? 1;
         public float playerExperience => progressManager?.GetExperience() ?? 0f;
         public float experienceToNextLevel => progressManager?.GetExperienceToNextLevel() ?? 100f;
@@ -217,8 +219,7 @@ namespace RPG.Core
         {
             if (PlayerController.Instance != null)
             {
-                var playerHealth = PlayerController.Instance.GetComponent<Player.PlayerHealth>();
-                playerHealth?.Heal(amount);
+                PlayerController.Instance.Heal(amount);
             }
         }
 
@@ -258,12 +259,12 @@ namespace RPG.Core
 
         #region Event Handlers
 
-        private void OnPlayerDied(object[] args)
+        private void OnPlayerDied(object args)
         {
             GameOver();
         }
 
-        private void OnGameVictory(object[] args)
+        private void OnGameVictory(object args)
         {
             if (stateManager != null)
             {

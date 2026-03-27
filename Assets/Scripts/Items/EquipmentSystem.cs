@@ -1,12 +1,13 @@
 using UnityEngine;
 using System.Collections.Generic;
+using Core.Stats;
 
 namespace RPG.Items
 {
     /// <summary>
     /// 装备系统 - 管理玩家装备
     /// </summary>
-    public class EquipmentSystem : MonoBehaviour
+    public class EquipmentSystem : MonoBehaviour, IPlayerStatModifierSource
     {
         [System.Serializable]
         public class EquipmentSlotData
@@ -26,6 +27,7 @@ namespace RPG.Items
 
         public event Action<EquipmentSlot, EquipmentData> OnEquipmentChanged;
         public event Action<EquipmentSlot> OnEquipmentUnequipped;
+        public event Action ModifiersChanged;
 
         private void Awake()
         {
@@ -63,10 +65,8 @@ namespace RPG.Items
             // 装备新物品
             equippedItems[slot] = equipment;
 
-            // 应用装备效果
-            ApplyEquipmentStats(equipment, true);
-
             OnEquipmentChanged?.Invoke(slot, equipment);
+            NotifyModifiersChanged();
 
             RPG.Core.EventManager.Instance?.TriggerEvent("ItemEquipped", new EquipmentEventArgs
             {
@@ -89,9 +89,6 @@ namespace RPG.Items
             EquipmentData item = equippedItems[slot];
             if (item == null) return false;
 
-            // 移除装备效果
-            ApplyEquipmentStats(item, false);
-
             // 返回到背包
             if (inventory != null)
             {
@@ -101,6 +98,7 @@ namespace RPG.Items
             equippedItems[slot] = null;
 
             OnEquipmentUnequipped?.Invoke(slot);
+            NotifyModifiersChanged();
 
             RPG.Core.EventManager.Instance?.TriggerEvent("ItemEquipped", new EquipmentEventArgs
             {
@@ -132,8 +130,6 @@ namespace RPG.Items
             // 卸下当前装备
             if (currentEquipped != null)
             {
-                ApplyEquipmentStats(currentEquipped, false);
-
                 // 返回到背包
                 if (inventory != null)
                 {
@@ -143,9 +139,9 @@ namespace RPG.Items
 
             // 装备新物品
             equippedItems[slot] = fromInventory;
-            ApplyEquipmentStats(fromInventory, true);
 
             OnEquipmentChanged?.Invoke(slot, fromInventory);
+            NotifyModifiersChanged();
 
             RPG.Core.EventManager.Instance?.TriggerEvent("ItemEquipped", new EquipmentEventArgs
             {
@@ -207,38 +203,19 @@ namespace RPG.Items
             return stats;
         }
 
-        /// <summary>
-        /// 应用/移除装备属性
-        /// </summary>
-        private void ApplyEquipmentStats(EquipmentData equipment, bool apply)
+        public void ApplyModifiers(ref PlayerStatBlock stats)
         {
-            if (equipment == null) return;
+            EquipmentStats equipmentStats = GetTotalStats();
+            stats.Add(
+                equipmentStats.health,
+                equipmentStats.attackPower,
+                equipmentStats.defense,
+                equipmentStats.moveSpeed);
+        }
 
-            int multiplier = apply ? 1 : -1;
-
-            var playerHealth = GetComponent<RPG.Player.PlayerHealth>();
-            if (playerHealth != null)
-            {
-                // 应用生命加成
-                playerHealth.Heal(equipment.healthBonus * multiplier);
-            }
-
-            // TODO: 应用其他属性到玩家系统
-            var playerController = GetComponent<RPG.Player.PlayerController>();
-            if (playerController != null)
-            {
-                if (equipment.attackPowerBonus != 0)
-                {
-                    playerController.SetAttackDamage(playerController.GetComponent<RPG.Player.PlayerCombat>()?.attackDamage ?? 0 + equipment.attackPowerBonus * multiplier);
-                }
-
-                if (equipment.moveSpeedBonus != 0)
-                {
-                    playerController.SetMoveSpeed(playerController.GetComponent<RPG.Player.PlayerMovement>()?.moveSpeed ?? 0 + equipment.moveSpeedBonus * multiplier);
-                }
-            }
-
-            Debug.Log($"{(apply ? "Applied" : "Removed")} equipment stats for {equipment.itemName}");
+        private void NotifyModifiersChanged()
+        {
+            ModifiersChanged?.Invoke();
         }
 
         /// <summary>

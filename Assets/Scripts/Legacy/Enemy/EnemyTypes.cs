@@ -190,7 +190,7 @@ namespace RPG.Enemy
         {
             if (other.CompareTag("Player"))
             {
-                other.GetComponent<RPG.Player.PlayerHealth>()?.TakeDamage(damage, transform.position);
+                other.GetComponent<Gameplay.Player.PlayerHealth>()?.TakeDamage(damage, transform.position);
                 Destroy(gameObject);
             }
         }

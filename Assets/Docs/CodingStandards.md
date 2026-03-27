@@ -4,8 +4,13 @@
 
 | 目录 | 命名空间 |
 |------|---------|
-| `Scripts/Framework/` | `Framework`、`Framework.Base`、`Framework.Events`、`Framework.Interfaces` |
-| `Scripts/Core/` | `Core`、`Core.Stats` |
+| `Scripts/Framework/Base/` | `Framework.Base`（含 `MonoBehaviourBase`、`SingletonMonoBehaviour<T>`、`MoveableBase`、`StateMachineBase<T>`） |
+| `Scripts/Framework/Core/Events/` | `Framework.Events`（`EventManager`） |
+| `Scripts/Framework/Core/Patterns/` | `Framework.Core.Patterns`（`Singleton<T>`、`ObjectPool`） |
+| `Scripts/Framework/Core/StateMachine/` | `Framework.Core.StateMachine` |
+| `Scripts/Framework/Interfaces/` | `Framework.Interfaces` |
+| `Scripts/Core/Stats/` | `Core.Stats`（`PlayerStatBlock`、`IPlayerStatModifierSource`） |
+| `Scripts/Core/` (根) | `RPG.Core`（遗留兼容桥，不新增类） |
 | `Scripts/Gameplay/Player/` | `Gameplay.Player` |
 | `Scripts/Gameplay/Enemy/` | `Gameplay.Enemy` |
 | `Scripts/Gameplay/Combat/` | `Gameplay.Combat` |
@@ -26,8 +31,20 @@ public class MyComponent : Framework.Base.MonoBehaviourBase { }
 // ✅ 全局单例继承 SingletonMonoBehaviour<T>
 public class MyManager : Framework.Base.SingletonMonoBehaviour<MyManager> { }
 
+// ✅ 可移动实体继承 MoveableBase（Framework.Base）
+public class MyMover : Framework.Base.MoveableBase { }
+
+// ✅ 枚举驱动状态机继承 StateMachineBase<TEnum>（Framework.Base）
+public class MyFSM : Framework.Base.StateMachineBase<MyStateEnum> { }
+
+// ✅ 攻击组件继承 AttackComponent（Gameplay.Combat）
+public class MyAttack : Gameplay.Combat.AttackComponent { }
+
 // ❌ 不要直接继承 MonoBehaviour（新代码）
 public class MyComponent : MonoBehaviour { }
+
+// ❌ 不要使用 RPG.Core.Singleton<T>（遗留），改用 SingletonMonoBehaviour<T>
+public class MyManager : RPG.Core.Singleton<MyManager> { }  // 旧写法
 ```
 
 ## 事件系统

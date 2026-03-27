@@ -1,6 +1,9 @@
 using UnityEngine;
 using UnityEngine.UI;
 using System.Collections.Generic;
+using RPG.Items;
+using UI.Presenters;
+using UI.Views;
 
 namespace UI.Controllers
 {
@@ -19,85 +22,140 @@ namespace UI.Controllers
         [SerializeField] private Text itemName;
         [SerializeField] private Text itemDescription;
 
-        private Gameplay.Inventory.InventorySystem inventory;
-        private List<InventorySlotUI> slotUIs = new List<InventorySlotUI>();
-        private Gameplay.Inventory.InventorySlot selectedSlot;
+        private InventorySystem inventory;
+        private readonly List<GameObject> slotObjects = new List<GameObject>();
+        private readonly List<ItemSlot> slotViews = new List<ItemSlot>();
+        private InventoryPresenter presenter;
 
         protected override void Initialize()
         {
             base.Initialize();
+            presenter = new InventoryPresenter();
+            presenter.SlotsChanged += HandleSlotsChanged;
+            presenter.DetailsChanged += HandleDetailsChanged;
 
-            inventory = FindAnyObjectByType<Gameplay.Inventory.InventorySystem>();
-            if (inventory != null)
-            {
-                inventory.OnInventoryChanged += RefreshInventory;
-            }
+            inventory = ResolveInventory();
+            presenter.Bind(inventory);
         }
 
         private void OnDestroy()
         {
-            if (inventory != null)
+            if (presenter != null)
             {
-                inventory.OnInventoryChanged -= RefreshInventory;
+                presenter.SlotsChanged -= HandleSlotsChanged;
+                presenter.DetailsChanged -= HandleDetailsChanged;
+                presenter.Unbind();
             }
         }
 
         public void RefreshInventory()
         {
-            ClearSlots();
-            CreateSlots();
+            presenter?.Refresh();
         }
 
         private void ClearSlots()
         {
-            foreach (var slotUI in slotUIs)
+            foreach (var slotObject in slotObjects)
             {
-                if (slotUI != null)
+                if (slotObject != null)
                 {
-                    Destroy(slotUI.gameObject);
+                    Destroy(slotObject);
                 }
             }
-            slotUIs.Clear();
+
+            slotObjects.Clear();
+            slotViews.Clear();
         }
 
-        private void CreateSlots()
+        private void HandleSlotsChanged(InventorySlotViewData[] slots)
         {
-            if (inventory == null) return;
+            ClearSlots();
 
-            for (int i = 0; i < inventory.SlotCount; i++)
+            if (slots == null || slotPrefab == null || slotsContainer == null)
             {
-                var slot = inventory.GetSlot(i);
-                if (slot == null) continue;
+                return;
+            }
 
+            foreach (var slot in slots)
+            {
                 GameObject slotObj = Instantiate(slotPrefab, slotsContainer);
-                var slotUI = slotObj.GetComponent<InventorySlotUI>();
-
-                if (slotUI != null)
+                slotObjects.Add(slotObj);
+                ItemSlot itemSlot = slotObj.GetComponent<ItemSlot>();
+                if (itemSlot != null)
                 {
-                    slotUI.Setup(slot, i);
-                    slotUI.OnSlotClicked += HandleSlotClicked;
-                    slotUIs.Add(slotUI);
+                    itemSlot.Setup(slot);
+                    itemSlot.OnSlotClicked += HandleSlotClicked;
+                    slotViews.Add(itemSlot);
+                    continue;
+                }
+
+                InventorySlotUI legacySlotView = slotObj.GetComponent<InventorySlotUI>();
+                if (legacySlotView != null)
+                {
+                    legacySlotView.Setup(slot);
+                    legacySlotView.OnSlotClicked += HandleSlotClicked;
                 }
             }
         }
 
         private void HandleSlotClicked(int slotIndex)
         {
-            var slot = inventory.GetSlot(slotIndex);
-            if (slot != null && !slot.IsEmpty)
-            {
-                selectedSlot = slot;
-                ShowItemDetails(slot);
-            }
+            presenter?.SelectSlot(slotIndex);
         }
 
-        private void ShowItemDetails(Gameplay.Inventory.InventorySlot slot)
+        private void HandleDetailsChanged(InventoryDetailsViewData details)
         {
             if (itemDetailsPanel != null)
             {
-                itemDetailsPanel.SetActive(true);
-                // Load item data from DataManager
+                itemDetailsPanel.SetActive(details.Visible);
             }
+
+            if (!details.Visible)
+            {
+                if (itemIcon != null)
+                {
+                    itemIcon.enabled = false;
+                    itemIcon.sprite = null;
+                }
+
+                if (itemName != null)
+                {
+                    itemName.text = string.Empty;
+                }
+
+                if (itemDescription != null)
+                {
+                    itemDescription.text = string.Empty;
+                }
+
+                return;
+            }
+
+            if (itemIcon != null)
+            {
+                itemIcon.enabled = details.Icon != null;
+                itemIcon.sprite = details.Icon;
+            }
+
+            if (itemName != null)
+            {
+                itemName.text = details.ItemName;
+            }
+
+            if (itemDescription != null)
+            {
+                itemDescription.text = details.Description;
+            }
+        }
+
+        private InventorySystem ResolveInventory()
+        {
+            if (ItemSystem.Instance != null && ItemSystem.Instance.inventory != null)
+            {
+                return ItemSystem.Instance.inventory;
+            }
+
+            return FindAnyObjectByType<InventorySystem>();
         }
     }
 
@@ -111,9 +169,9 @@ namespace UI.Controllers
 
         private int slotIndex;
 
-        public void Setup(Gameplay.Inventory.InventorySlot slot, int index)
+        public void Setup(InventorySlotViewData slot)
         {
-            slotIndex = index;
+            slotIndex = slot.SlotIndex;
 
             if (slot.IsEmpty)
             {
@@ -122,8 +180,16 @@ namespace UI.Controllers
             }
             else
             {
-                // Load icon from item data
-                if (amountText != null) amountText.text = slot.Amount > 1 ? slot.Amount.ToString() : "";
+                if (icon != null)
+                {
+                    icon.enabled = slot.Icon != null;
+                    icon.sprite = slot.Icon;
+                }
+
+                if (amountText != null)
+                {
+                    amountText.text = slot.AmountText;
+                }
             }
 
             if (button != null)
