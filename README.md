@@ -1,249 +1,114 @@
 # Unity RPG Framework
 
-一个现代化、模块化的Unity RPG游戏开发框架,采用事件驱动架构和ScriptableObject数据配置系统。
+模块化 Unity 2D RPG 框架，采用事件驱动架构、命令模式输入、统一战斗管线与数据-表现分离设计。
 
-## 🌟 特性
-
-- **模块化设计**: 每个系统独立,职责单一,易于维护和扩展
-- **事件驱动**: 使用EventManager解耦系统间通信,降低耦合度
-- **ScriptableObject**: 数据与逻辑分离,支持可视化配置
-- **状态机**: 敌人AI、游戏状态使用状态机管理
-- **单例模式**: 统一使用泛型Singleton基类
-- **自定义编辑器**: 提供友好的Unity Editor工具
-
-## 📁 项目结构
+## 项目结构
 
 ```
-Assets/Scripts/
-├── Core/                    # 核心系统
-│   ├── Events/             # 事件系统
-│   ├── Base/               # 基类
-│   ├── Components/         # 组件
-│   ├── Interfaces/         # 接口
-│   ├── GameManager.cs      # 游戏管理器
-│   ├── GameState.cs        # 游戏状态管理器
-│   ├── PlayerProgress.cs   # 玩家进度管理器
-│   ├── SaveSystem.cs       # 保存系统
-│   ├── Singleton.cs        # 单例基类
-│   └── CharacterStats.cs   # 角色属性
-├── Player/                  # 玩家系统
-│   ├── PlayerController.cs
-│   ├── PlayerHealth.cs
-│   ├── PlayerMovement.cs
-│   ├── PlayerCombat.cs
-│   ├── PlayerInput.cs
-│   └── PlayerState.cs
-├── Enemy/                   # 敌人系统
-│   ├── EnemyData.cs
-│   ├── EnemyState.cs
-│   └── EnemyBase.cs
-├── Items/                   # 物品系统
-│   ├── ItemData.cs
-│   ├── InventorySystem.cs
-│   ├── ItemPickup.cs
-│   ├── EquipmentSystem.cs
-│   └── ItemSystem.cs
-├── UI/                      # UI系统
-│   ├── UIBase.cs
-│   ├── HUDController.cs
-│   ├── MenuController.cs
-│   ├── InventoryUI.cs
-│   └── UIManager.cs
-├── Skills/                  # 技能系统
-│   ├── SkillData.cs
-│   ├── SkillController.cs
-│   └── SkillEffect.cs
-├── Quests/                  # 任务系统
-│   ├── QuestData.cs
-│   └── QuestManager.cs
-├── Achievements/            # 成就系统
-│   ├── AchievementData.cs
-│   └── AchievementManager.cs
-├── Data/                    # 数据管理
-│   ├── ItemDatabase.cs
-│   ├── QuestDatabase.cs
-│   ├── AchievementDatabase.cs
-│   └── DataManager.cs
-└── Editor/                  # 编辑器工具
-    ├── SkillDataEditor.cs
-    ├── SkillControllerEditor.cs
-    ├── SkillDatabaseEditor.cs
-    └── SkillEffectEditor.cs
+Assets/
+├── Scripts/
+│   ├── Framework/      # 基础设施（无业务依赖）
+│   ├── Core/           # 核心基类与跨系统结构体
+│   ├── Gameplay/       # 运行时玩法系统
+│   │   ├── Player/     # 玩家控制、状态机、属性
+│   │   ├── Enemy/      # 敌人 AI、表现、攻击
+│   │   ├── Combat/     # 统一伤害管线
+│   │   └── Inventory/  # 背包（运行时）
+│   ├── UI/             # 纯视图层（Controller/Presenter/View）
+│   ├── Managers/       # 全局单例管理器
+│   ├── Data/           # ScriptableObject 数据定义
+│   ├── Items/          # 物品系统
+│   ├── Skills/         # 技能系统
+│   ├── Quests/         # 任务系统
+│   ├── Achievements/   # 成就系统
+│   └── Legacy/         # 旧版兼容层（只读）
+└── Editor/             # Unity Editor 工具
 ```
 
-## 🚀 快速开始
+详细说明参见 [`Assets/Docs/Architecture.md`](Assets/Docs/Architecture.md)。
 
-### 1. 初始化系统
+## 核心设计
 
-在游戏开始时初始化各个管理器:
+### 命令模式输入
+
+```
+PlayerInputController  →  IPlayerCommand  →  PlayerController  →  PlayerStateMachine
+                                                                →  PlayerMovement
+```
+
+输入动作被封装为 `IPlayerCommand` 对象入队，状态机和移动组件从 `PlayerCommandContext` 读取快照，与 Unity Input 系统完全解耦。
+
+### 统一战斗管线
+
+所有伤害来源构造 `DamageInfo` 后交由 `CombatResolver` 分发，目标实体通过 `IDamageReceiver.ReceiveDamage()` 处理：
 
 ```csharp
-// 在GameManager或启动场景中
+var info = new DamageInfo(amount, sourcePos, go, CombatDamageType.Physical, CombatHitKind.Attack);
+CombatResolver.TryApplyDamage(targetCollider, info);
+```
+
+### 属性聚合
+
+`PlayerStatsRuntime` 聚合所有 `IPlayerStatModifierSource`（装备、Buff、等级），统一写入各组件，外部不得直接修改属性。
+
+### UI 数据-表现分离
+
+Domain → Presenter（转换为 ViewData）→ Controller（渲染 View）→ View（只接收 ViewData）
+
+## 快速开始
+
+### 初始化
+
+```csharp
+// 在启动场景 GameManager 中
 DataManager.Instance.InitializeAllDatabases();
-EventManager.Instance.Initialize();
+Framework.Events.EventManager.Instance.Initialize();
 ```
 
-### 2. 创建ScriptableObject数据
-
-在Unity编辑器中:
-- 右键点击 `Assets/Resources`
-- 选择 `Create > RPG/...`
-- 创建所需的数据资产(物品、技能、任务等)
-
-### 3. 使用事件系统
+### 添加伤害来源
 
 ```csharp
-// 触发事件
-EventManager.Instance.TriggerEvent("PlayerDied", null);
+using Gameplay.Combat;
+using Framework.Interfaces;
 
-// 监听事件
-EventManager.Instance.AddListener("PlayerDied", OnPlayerDied);
-
-private void OnPlayerDied(object[] args)
-{
-    Debug.Log("玩家死亡");
-}
+var info = new DamageInfo(
+    amount: 30f,
+    sourcePosition: transform.position,
+    sourceObject: gameObject,
+    damageType: CombatDamageType.Magic,
+    hitKind: CombatHitKind.Skill
+);
+CombatResolver.TryApplyDamage(enemy.GetComponent<Collider2D>(), info);
 ```
 
-### 4. 使用管理器
+### 添加 Buff
 
 ```csharp
-// 访问玩家进度
-int level = PlayerProgressManager.Instance.GetLevel();
-PlayerProgressManager.Instance.AddExperience(100);
-
-// 访问物品系统
-ItemSystem.Instance.AddItem(itemData);
-ItemSystem.Instance.UseItem(consumableData);
-
-// 访问技能系统
-SkillController skillController = GetComponent<SkillController>();
-skillController.TryUseSkill(0); // 使用第一个技能槽的技能
+var buff = GetComponent<PlayerBuffController>();
+buff.AddBuff(new BuffEntry {
+    duration = 10f,
+    statDelta = new Core.Stats.PlayerStatBlock { AttackDamage = 20 }
+});
 ```
 
-## 🎮 主要系统
-
-### 玩家系统
-- **PlayerState**: 玩家状态管理
-- **PlayerInput**: 统一输入处理
-- **PlayerMovement**: 独立移动系统
-- **PlayerCombat**: 独立战斗系统
-- **PlayerHealth**: 健康系统,事件驱动
-
-### 敌人系统
-- **EnemyData**: ScriptableObject敌人配置
-- **EnemyState**: 状态机(Idle/Patrol/Chase/Attack/Death)
-- **EnemyBase**: 敌人基类
-
-### 物品系统
-- **ItemData**: 物品基类(消耗品、装备、武器、护甲、任务物品)
-- **InventorySystem**: 背包系统,支持堆叠
-- **ItemPickup**: 物品拾取,自动/手动拾取
-- **EquipmentSystem**: 装备系统
-
-### UI系统
-- **UIBase**: UI面板基类,支持淡入淡出
-- **HUDController**: HUD显示控制器
-- **MenuController**: 菜单控制器
-- **InventoryUI**: 背包UI
-
-### 技能系统
-- **SkillData**: ScriptableObject技能配置
-- **SkillController**: 技能控制器,冷却系统
-- **SkillEffect**: 技能效果系统(投射物、范围、波浪、瞬发)
-
-### 任务系统
-- **QuestData**: ScriptableObject任务配置
-- **QuestManager**: 任务管理器
-- 多种任务目标(击杀、收集、对话等)
-
-### 成就系统
-- **AchievementData**: ScriptableObject成就配置
-- **AchievementManager**: 成就管理器
-- 多种成就条件类型
-
-### 保存系统
-- **SaveSystem**: 多存档支持,JSON序列化
-- 自动保存、快速保存功能
-
-## 🛠️ Editor工具
-
-### 技能编辑器
-- 右键 `RPG/Skill Database` 打开技能数据库窗口
-- 自定义技能数据Inspector
-- 技能效果编辑器
-
-### 数据管理
-- 统一的数据管理器访问所有数据库
-- 支持热重载(Editor Only)
-
-## 📖 使用示例
-
-### 创建技能
+### 订阅玩家血量变化
 
 ```csharp
-// 1. 创建SkillData资产
-SkillData fireball = ScriptableObject.CreateInstance<SkillData>();
-fireball.skillName = "火球术";
-fireball.skillType = SkillType.Active;
-fireball.baseDamage = 50;
-fireball.cooldown = 5f;
+private void OnEnable()  => playerHealth.OnHealthChanged += OnHealthChanged;
+private void OnDisable() => playerHealth.OnHealthChanged -= OnHealthChanged;
 
-// 2. 配置到SkillController
-SkillController controller = GetComponent<SkillController>();
-controller.skillSlots[0] = fireball;
+private void OnHealthChanged(float current, float max) { /* 更新 UI */ }
 ```
 
-### 添加物品
+## 文档
 
-```csharp
-// 创建物品数据
-ConsumableData healthPotion = ScriptableObject.CreateInstance<ConsumableData>();
-healthPotion.itemName = "治疗药水";
-healthPotion.healAmount = 50;
+| 文档 | 内容 |
+|------|------|
+| [`Assets/Docs/Architecture.md`](Assets/Docs/Architecture.md) | 分层架构、各模块职责、设计约束 |
+| [`Assets/Docs/CombatSystem.md`](Assets/Docs/CombatSystem.md) | 战斗管线、DamageInfo、DamageableBase、Buff |
+| [`Assets/Docs/CodingStandards.md`](Assets/Docs/CodingStandards.md) | 命名空间、基类、事件、输入、伤害、UI 规范 |
 
-// 添加到背包
-InventorySystem inventory = GetComponent<InventorySystem>();
-inventory.AddItem(healthPotion, 5);
-```
+## 技术要求
 
-### 创建任务
-
-```csharp
-// 创建任务数据
-QuestData quest = ScriptableObject.CreateInstance<QuestData>();
-quest.questId = "kill_10_slimes";
-quest.questName = "消灭史莱姆";
-quest.objectives = new QuestObjective[]
-{
-    new QuestObjective
-    {
-        objectiveId = "slime_kill",
-        description = "消灭10只史莱姆",
-        objectiveType = QuestObjectiveType.KillEnemy,
-        targetAmount = 10
-    }
-};
-
-// 接取任务
-QuestManager.Instance.StartQuest("kill_10_slimes");
-```
-
-## 🤝 贡献
-
-欢迎提交Issue和Pull Request!
-
-## 📄 许可证
-
-MIT License
-
-## 🙏 致谢
-
-感谢所有为这个项目做出贡献的人!
-
----
-
-**版本**: 1.0.0
-**Unity版本**: 2021.3+
-**作者**: Your Name
-**最后更新**: 2025-03-22
+- Unity 2021.3+
+- .NET Standard 2.1

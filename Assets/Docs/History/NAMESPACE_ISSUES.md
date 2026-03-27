@@ -31,10 +31,10 @@
 - `Assets/Scripts/UI/InventoryUI.cs`
 
 ### Editor 层
-- `Assets/Scripts/Editor/SkillControllerEditor.cs`
-- `Assets/Scripts/Editor/SkillDataEditor.cs`
-- `Assets/Scripts/Editor/SkillDatabaseEditor.cs`
-- `Assets/Scripts/Editor/SkillEffectEditor.cs`
+- `Assets/Editor/SkillControllerEditor.cs`
+- `Assets/Editor/SkillDataEditor.cs`
+- `Assets/Editor/SkillDatabaseEditor.cs`
+- `Assets/Editor/SkillEffectEditor.cs`
 
 ## 解决方案
 

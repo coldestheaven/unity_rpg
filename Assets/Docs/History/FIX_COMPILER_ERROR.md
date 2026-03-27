@@ -12,7 +12,7 @@
 Assets/Scripts/Framework/Framework_temp/
 Assets/Scripts/Gameplay/Gameplay_temp/
 Assets/Scripts/UI/UI_temp/
-Assets/Scripts/Editor/Editor_temp/
+Assets/Editor/Editor_temp/
 ```
 
 ## 操作步骤

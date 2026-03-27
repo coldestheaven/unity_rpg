@@ -1,52 +1,18 @@
 # Unity RPG 项目重构文档
 
-## 📁 新目录结构
+## 当前目录结构
 
-重构后的项目采用分层架构，每个层级职责清晰：
+项目当前采用无数字前缀的分层目录结构：
 
-```
-Assets/Scripts/
-├── 01_Framework/              # 框架层 - 基础架构
-│   ├── Core/
-│   │   ├── Events/          # 事件系统
-│   │   ├── StateMachine/    # 状态机
-│   │   ├── Patterns/        # 设计模式（单例、对象池）
-│   │   └── Utils/           # 工具类
-│   ├── Interfaces/          # 接口定义
-│   └── Base/                # 基类
-│
-├── 02_Data/                 # 数据层 - ScriptableObject
-│   ├── Items/               # 物品数据
-│   ├── Skills/              # 技能数据
-│   ├── Quests/              # 任务数据
-│   └── Databases/           # 数据库
-│
-├── 03_Gameplay/             # 游戏逻辑层
-│   ├── Player/              # 玩家系统
-│   │   ├── Controllers/     # 控制器
-│   │   └── Components/      # 组件
-│   ├── Enemy/               # 敌人系统
-│   │   ├── Controllers/
-│   │   └── AI/
-│   ├── Combat/              # 战斗系统
-│   └── Inventory/           # 背包系统
-│
-├── 04_UI/                   # UI层
-│   ├── Base/                # UI基类
-│   ├── Controllers/         # UI控制器
-│   └── Views/               # UI视图组件
-│
-├── 05_Managers/             # 管理器层
-│   ├── GameManager.cs
-│   ├── GameStateManager.cs
-│   ├── SaveManager.cs
-│   ├── AudioManager.cs
-│   └── DataManager.cs
-│
-└── 06_Editor/               # Editor工具
-    ├── Editors/             # 自定义编辑器
-    ├── Windows/             # 编辑器窗口
-    └── Tools/               # 工具脚本
+```text
+Assets/
+├── Scripts/
+│   ├── Framework/          # 框架层
+│   ├── Data/               # 数据层
+│   ├── Gameplay/           # 游戏逻辑层
+│   ├── UI/                 # UI层
+│   └── Managers/           # 管理器层
+└── Editor/                 # Unity 编辑器工具
 ```
 
 ## 🏗️ 架构特点
@@ -125,18 +91,28 @@ PlayerController (控制器)
 └── PlayerInputController (输入组件)
 ```
 
-## 🔄 迁移指南
+## 🔄 迁移说明
 
-### 旧代码 -> 新代码映射
+### 本次目录重构
 
-| 旧位置 | 新位置 | 命名空间变化 |
-|--------|--------|-------------|
-| `Core/Singleton.cs` | `01_Framework/Core/Patterns/Singleton.cs` | `Framework.Core.Patterns` |
-| `Core/EventManager.cs` | `01_Framework/Core/Events/EventManager.cs` | `Framework.Events` |
-| `Player/PlayerController.cs` | `03_Gameplay/Player/Controllers/PlayerController.cs` | `Gameplay.Player` |
-| `Player/PlayerHealth.cs` | `03_Gameplay/Player/Components/PlayerHealth.cs` | `Gameplay.Player` |
-| `UI/UIManager.cs` | `04_UI/Controllers/UIManager.cs` | `UI.Controllers` |
-| `GameManager.cs` | `05_Managers/GameManager.cs` | `Managers` |
+| 历史目录 | 当前目录 | 备注 |
+|--------|--------|------|
+| `01_Framework/` | `Framework/` | 已合并缺失脚本 |
+| `03_Gameplay/` | `Gameplay/` | 已合并缺失子目录 |
+| `04_UI/` | `UI/` | 已切换为正式 UI 结构 |
+| `05_Managers/` | `Managers/` | 已切换为正式管理器目录 |
+| `06_Editor/` | `Editor/` | 已切换为正式 Editor 目录 |
+
+### 旧平铺目录到新分层目录
+
+| 旧位置 | 当前推荐位置 | 命名空间 |
+|--------|-------------|---------|
+| `Core/Singleton.cs` | `Framework/Core/Patterns/Singleton.cs` | `Framework.Core.Patterns` |
+| `Core/EventManager.cs` | `Framework/Core/Events/EventManager.cs` | `Framework.Events` |
+| `Player/PlayerController.cs` | `Gameplay/Player/Controllers/PlayerController.cs` | `Gameplay.Player` |
+| `Player/PlayerHealth.cs` | `Gameplay/Player/Components/PlayerHealth.cs` | `Gameplay.Player` |
+| `UI/UIManager.cs` | `UI/Controllers/UIManager.cs` | `UI.Controllers` |
+| `GameManager.cs` | `Managers/GameManager.cs` | `Managers` |
 
 ### 修改命名空间
 
@@ -305,22 +281,19 @@ UI.Controllers.UIManager.Instance.ShowPanel("Inventory");
 
 ## ⚠️ 注意事项
 
-1. **不要删除旧的代码文件**，直到新代码完全测试通过
-2. **逐步迁移**，一次迁移一个系统
-3. **测试每个迁移的组件**
-4. **更新所有的 `using` 语句**
-5. **更新事件常量引用**
+1. 本次已完成的是目录命名收敛，不等于旧业务目录已经全部迁移完毕
+2. `Data/` 仍是正式目录，不属于待删除目录
+3. `Core/`、`Items/`、`Skills/`、`Quests/`、`Achievements/` 等旧目录仍需后续逐步迁移
+4. 旧 `Player/` 目录已迁移到 `Assets/Scripts/Legacy/Player/`，不再作为主路径使用
+5. 旧 `Enemy/` 目录已迁移到 `Assets/Scripts/Legacy/Enemy/`，不再作为主路径使用
+6. 在 Unity 中应重新导入脚本并检查 Console
+7. 旧代码删除应以场景、Prefab 和资源引用验证为前提
 
 ## 📚 下一步
 
-1. ✅ 测试新架构的玩家系统
-2. ✅ 测试新架构的敌人系统
-3. ✅ 测试新架构的UI系统
-4. ⬜ 迁移技能系统
-5. ⬜ 迁移任务系统
-6. ⬜ 迁移成就系统
-7. ⬜ 删除旧代码文件
-8. ⬜ 提交到Git
+1. 在 Unity 中验证脚本重新导入结果
+2. 评估旧平铺业务目录的真实引用关系
+3. 按系统拆分后续业务迁移，而不是继续做大范围目录删除
 
 ## 🎉 总结
 
