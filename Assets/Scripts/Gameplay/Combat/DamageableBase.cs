@@ -25,11 +25,21 @@ namespace Gameplay.Combat
         public event Action<float> OnHealed;
         public event Action OnDied;
 
+        // Chain of Responsibility — damage processing pipeline.
+        private DamageHandler _damageChain;
+
         protected override void Awake()
         {
             base.Awake();
+            _damageChain = BuildDamageChain();
             currentHealth = Mathf.Clamp(currentHealth <= 0f ? maxHealth : currentHealth, 0f, maxHealth);
         }
+
+        /// <summary>
+        /// Override to install a custom damage processing chain for this entity type.
+        /// Default chain: DefenseHandler → MinimumDamageHandler(0).
+        /// </summary>
+        protected virtual DamageHandler BuildDamageChain() => DamagePipeline.BuildDefault();
 
         public virtual void TakeDamage(float damage, Vector3 attackerPosition)
         {
@@ -119,9 +129,14 @@ namespace Gameplay.Combat
             return !IsDead;
         }
 
+        /// <summary>
+        /// Routes raw damage through the Chain of Responsibility pipeline.
+        /// Override <see cref="BuildDamageChain"/> to customise; do not override this method.
+        /// </summary>
         protected virtual float ResolveDamage(DamageInfo damageInfo)
         {
-            return Mathf.Max(0f, damageInfo.Amount - defense);
+            float? result = _damageChain?.Handle(damageInfo.Amount, damageInfo, this);
+            return result ?? 0f;
         }
 
         protected virtual void NotifyHealthChanged() { }

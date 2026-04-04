@@ -207,6 +207,14 @@ namespace RPG.Skills
                 ExecuteSkill(skillInstance);
                 OnSkillUsed?.Invoke(slotIndex);
 
+                // Typed event bus (new) + legacy string bus (backward compat)
+                Framework.Events.EventBus.Publish(new Framework.Events.SkillUsedEvent
+                {
+                    SkillName = skillInstance.SkillData.skillName,
+                    SlotIndex = slotIndex,
+                    Level = skillInstance.Level
+                });
+
                 EventManager.Instance?.TriggerEvent("SkillUsed", new SkillUsedEventArgs
                 {
                     skillName = skillInstance.SkillData.skillName,
@@ -222,6 +230,8 @@ namespace RPG.Skills
 
         /// <summary>
         /// 执行技能逻辑
+        /// If SkillData.executionStrategy is assigned, delegates to that strategy (Strategy Pattern).
+        /// Otherwise falls back to the legacy switch on SkillType for backward compatibility.
         /// </summary>
         private void ExecuteSkill(SkillInstance skillInstance)
         {
@@ -236,7 +246,20 @@ namespace RPG.Skills
                 AudioSource.PlayClipAtPoint(skillData.castSound, transform.position);
             }
 
-            // 根据技能类型执行不同逻辑
+            // Strategy Pattern: delegate to assigned SO strategy if present
+            if (skillData.executionStrategy != null)
+            {
+                var context = new SkillExecutionContext(
+                    skillData,
+                    skillInstance.Level,
+                    playerTransform,
+                    GetFacingDirection());
+
+                skillData.executionStrategy.Execute(context);
+                return;
+            }
+
+            // Legacy fallback: switch on SkillType
             switch (skillData.skillType)
             {
                 case SkillType.Active:

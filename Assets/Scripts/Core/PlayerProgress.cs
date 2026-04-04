@@ -70,6 +70,7 @@ namespace RPG.Core
             Progress.AddExperience(amount);
             OnExperienceGained?.Invoke(amount);
 
+            // Typed EventBus (new) + legacy string bus (backward compat)
             EventManager.Instance?.TriggerEvent("ExperienceGained", new ExperienceEventArgs
             {
                 amount = amount,
@@ -77,9 +78,17 @@ namespace RPG.Core
                 experienceToNextLevel = Progress.experienceToNextLevel
             });
 
+            Framework.Events.EventBus.Publish(new Framework.Events.PlayerXPGainedEvent
+            {
+                Amount = amount,
+                CurrentXP = Progress.experience,
+                XPToNextLevel = Progress.experienceToNextLevel
+            });
+
             // 检查是否升级
             while (Progress.CanLevelUp())
             {
+                int oldLevel = Progress.level;
                 Progress.LevelUp();
                 OnLevelUp?.Invoke(Progress.level);
 
@@ -88,6 +97,13 @@ namespace RPG.Core
                     level = Progress.level,
                     currentExperience = Progress.experience,
                     experienceToNextLevel = Progress.experienceToNextLevel
+                });
+
+                Framework.Events.EventBus.Publish(new Framework.Events.PlayerLevelUpEvent
+                {
+                    OldLevel = oldLevel,
+                    NewLevel = Progress.level,
+                    NewXPToNextLevel = Progress.experienceToNextLevel
                 });
 
                 Debug.Log($"Level up! Current level: {Progress.level}");
@@ -108,6 +124,12 @@ namespace RPG.Core
             {
                 currentGold = Progress.gold,
                 changeAmount = amount
+            });
+
+            Framework.Events.EventBus.Publish(new Framework.Events.GoldChangedEvent
+            {
+                CurrentGold = Progress.gold,
+                Delta = amount
             });
 
             NotifyProgressChanged();

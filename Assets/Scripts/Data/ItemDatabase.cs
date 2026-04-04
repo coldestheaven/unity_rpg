@@ -1,13 +1,15 @@
 using UnityEngine;
 using System.Collections.Generic;
+using Framework.Interfaces;
 
 namespace RPG.Items
 {
     /// <summary>
     /// 物品数据库 - ScriptableObject
+    /// Implements IRepository&lt;ItemData&gt; so callers depend on the abstraction.
     /// </summary>
     [CreateAssetMenu(fileName = "ItemDatabase", menuName = "RPG/Data/Item Database")]
-    public class ItemDatabase : ScriptableObject
+    public class ItemDatabase : ScriptableObject, IRepository<ItemData>
     {
         [System.Serializable]
         public class ItemEntry
@@ -133,7 +135,28 @@ namespace RPG.Items
         /// </summary>
         public bool ContainsItem(string itemId)
         {
-            return itemDictionary.ContainsKey(itemId);
+            return itemDictionary != null && itemDictionary.ContainsKey(itemId);
+        }
+
+        // ── IRepository<ItemData> ──────────────────────────────────────────
+
+        public ItemData GetById(string id) => GetItem(id);
+
+        public bool Exists(string id) => ContainsItem(id);
+
+        public IReadOnlyList<ItemData> GetAll()
+        {
+            if (itemDictionary == null) Initialize();
+            return new List<ItemData>(itemDictionary.Values);
+        }
+
+        public int Count
+        {
+            get
+            {
+                if (itemDictionary == null) Initialize();
+                return itemDictionary.Count;
+            }
         }
     }
 }

@@ -69,6 +69,11 @@ namespace RPG.Skills
         [Header("快捷键")]
         public KeyCode hotkey;
 
+        [Header("执行策略 (Strategy Pattern)")]
+        [Tooltip("ScriptableObject that defines how this skill executes. " +
+                 "Leave null to use the legacy skill-type switch in SkillController.")]
+        public SkillExecutionStrategy executionStrategy;
+
         /// <summary>
         /// 获取指定等级的伤害
         /// </summary>

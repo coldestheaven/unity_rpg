@@ -173,19 +173,11 @@ namespace RPG.Items
         }
 
         /// <summary>
-        /// 创建拾取物
+        /// 创建拾取物 (delegates to ItemPickupFactory)
         /// </summary>
         public ItemPickup CreatePickup(Vector3 position, ItemData item, int quantity = 1)
         {
-            if (item == null) return null;
-
-            GameObject pickupObject = new GameObject($"{item.name}_Pickup");
-            pickupObject.transform.position = position;
-
-            ItemPickup pickup = pickupObject.AddComponent<ItemPickup>();
-            pickup.SetItem(item, quantity);
-
-            return pickup;
+            return ItemPickupFactory.Create(item, quantity, position);
         }
 
         /// <summary>

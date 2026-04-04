@@ -1,13 +1,15 @@
 using UnityEngine;
 using System.Collections.Generic;
+using Framework.Interfaces;
 
 namespace RPG.Quests
 {
     /// <summary>
     /// 任务数据库 - ScriptableObject
+    /// Implements IRepository&lt;QuestData&gt; so callers depend on the abstraction.
     /// </summary>
     [CreateAssetMenu(fileName = "QuestDatabase", menuName = "RPG/Data/Quest Database")]
-    public class QuestDatabase : ScriptableObject
+    public class QuestDatabase : ScriptableObject, IRepository<QuestData>
     {
         [System.Serializable]
         public class QuestEntry
@@ -131,7 +133,28 @@ namespace RPG.Quests
         /// </summary>
         public bool ContainsQuest(string questId)
         {
-            return questDictionary.ContainsKey(questId);
+            return questDictionary != null && questDictionary.ContainsKey(questId);
+        }
+
+        // ── IRepository<QuestData> ─────────────────────────────────────────
+
+        public QuestData GetById(string id) => GetQuest(id);
+
+        public bool Exists(string id) => ContainsQuest(id);
+
+        public IReadOnlyList<QuestData> GetAll()
+        {
+            if (questDictionary == null) Initialize();
+            return new List<QuestData>(questDictionary.Values);
+        }
+
+        public int Count
+        {
+            get
+            {
+                if (questDictionary == null) Initialize();
+                return questDictionary.Count;
+            }
         }
     }
 }

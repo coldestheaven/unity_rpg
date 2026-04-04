@@ -73,13 +73,33 @@ namespace Framework.Core.Patterns
 
         private Queue<GameObject> pool = new Queue<GameObject>();
         private Transform poolContainer;
+        private bool _initialized;
 
         private void Awake()
         {
-            poolContainer = new GameObject($"Pool_{prefab.name}").transform;
-            poolContainer.SetParent(transform);
+            if (prefab != null)
+                Initialize(prefab, initialSize);
+        }
 
-            for (int i = 0; i < initialSize; i++)
+        /// <summary>
+        /// Initializes the pool at runtime with a given prefab.
+        /// Safe to call multiple times — subsequent calls are ignored unless
+        /// <paramref name="force"/> is true.
+        /// </summary>
+        public void Initialize(GameObject poolPrefab, int size = 10, bool force = false)
+        {
+            if (_initialized && !force) return;
+
+            prefab = poolPrefab;
+            _initialized = true;
+
+            if (poolContainer == null)
+            {
+                poolContainer = new GameObject($"Pool_{prefab.name}").transform;
+                poolContainer.SetParent(transform);
+            }
+
+            for (int i = 0; i < size; i++)
             {
                 GameObject obj = Instantiate(prefab, poolContainer);
                 obj.SetActive(false);
@@ -93,22 +113,40 @@ namespace Framework.Core.Patterns
             {
                 GameObject obj = pool.Dequeue();
                 obj.SetActive(true);
+                NotifyGetFromPool(obj);
                 return obj;
             }
-            else if (expandPool)
+
+            if (expandPool && prefab != null)
             {
                 GameObject obj = Instantiate(prefab, poolContainer);
                 obj.SetActive(true);
+                NotifyGetFromPool(obj);
                 return obj;
             }
+
             return null;
         }
 
         public void Release(GameObject obj)
         {
+            if (obj == null) return;
+            NotifyReleaseToPool(obj);
             obj.SetActive(false);
             obj.transform.SetParent(poolContainer);
             pool.Enqueue(obj);
+        }
+
+        private static void NotifyGetFromPool(GameObject obj)
+        {
+            var poolable = obj.GetComponent<Framework.Interfaces.IPoolable>();
+            poolable?.OnGetFromPool();
+        }
+
+        private static void NotifyReleaseToPool(GameObject obj)
+        {
+            var poolable = obj.GetComponent<Framework.Interfaces.IPoolable>();
+            poolable?.OnReleaseToPool();
         }
     }
 }

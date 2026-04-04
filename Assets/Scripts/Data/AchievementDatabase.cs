@@ -1,13 +1,15 @@
 using UnityEngine;
 using System.Collections.Generic;
+using Framework.Interfaces;
 
 namespace RPG.Achievements
 {
     /// <summary>
     /// 成就数据库 - ScriptableObject
+    /// Implements IRepository&lt;AchievementData&gt; so callers depend on the abstraction.
     /// </summary>
     [CreateAssetMenu(fileName = "AchievementDatabase", menuName = "RPG/Data/Achievement Database")]
-    public class AchievementDatabase : ScriptableObject
+    public class AchievementDatabase : ScriptableObject, IRepository<AchievementData>
     {
         [System.Serializable]
         public class AchievementEntry
@@ -133,7 +135,28 @@ namespace RPG.Achievements
         /// </summary>
         public bool ContainsAchievement(string achievementId)
         {
-            return achievementDictionary.ContainsKey(achievementId);
+            return achievementDictionary != null && achievementDictionary.ContainsKey(achievementId);
+        }
+
+        // ── IRepository<AchievementData> ──────────────────────────────────
+
+        public AchievementData GetById(string id) => GetAchievement(id);
+
+        public bool Exists(string id) => ContainsAchievement(id);
+
+        public IReadOnlyList<AchievementData> GetAll()
+        {
+            if (achievementDictionary == null) Initialize();
+            return new List<AchievementData>(achievementDictionary.Values);
+        }
+
+        public int Count
+        {
+            get
+            {
+                if (achievementDictionary == null) Initialize();
+                return achievementDictionary.Count;
+            }
         }
     }
 }

@@ -58,6 +58,10 @@ namespace RPG.Items
         public AudioClip pickupSound;
         public AudioClip dropSound;
 
+        [Tooltip("Prefab instantiated in the world when this item is dropped or spawned as a pickup. " +
+                 "Must contain an ItemPickup component. If null, ItemPickupFactory creates a plain GO.")]
+        public GameObject worldPickupPrefab;
+
         [Header("标签")]
         public string[] tags;
 

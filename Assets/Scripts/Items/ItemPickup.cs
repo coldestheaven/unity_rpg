@@ -202,6 +202,14 @@ namespace RPG.Items
                 position = transform.position
             });
 
+            Framework.Events.EventBus.Publish(new Framework.Events.ItemPickedUpEvent
+            {
+                ItemId = itemData?.name,
+                ItemName = itemData?.itemName,
+                Quantity = quantity,
+                Position = transform.position
+            });
+
             Destroy(gameObject);
         }
 
