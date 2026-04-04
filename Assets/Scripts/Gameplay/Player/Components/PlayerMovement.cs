@@ -81,6 +81,8 @@ namespace Gameplay.Player
 
         private void CheckGrounded()
         {
+            if (groundCheck == null) return;
+
             bool wasGrounded = isGrounded;
             isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, groundLayer);
 

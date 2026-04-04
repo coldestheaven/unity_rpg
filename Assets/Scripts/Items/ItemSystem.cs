@@ -131,14 +131,14 @@ namespace RPG.Items
         /// <summary>
         /// 装备物品
         /// </summary>
-        public bool EquipItem(EquipmentData equipment)
+        public bool EquipItem(EquipmentData equipmentData)
         {
-            if (equipment == null || equipment == null) return false;
+            if (equipmentData == null || equipment == null) return false;
 
-            if (inventory.HasItem(equipment, 1))
+            if (inventory.HasItem(equipmentData, 1))
             {
-                inventory.RemoveItem(equipment, 1);
-                return equipment.EquipItem(equipment);
+                inventory.RemoveItem(equipmentData, 1);
+                return equipment.EquipItem(equipmentData);
             }
 
             return false;

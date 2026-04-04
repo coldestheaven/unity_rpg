@@ -14,8 +14,21 @@ namespace Managers
         private string SavePath => Path.Combine(Application.persistentDataPath, saveFolder);
         private float autoSaveTimer = 0f;
 
+        protected override void Awake()
+        {
+            base.Awake();
+            if (!Directory.Exists(SavePath))
+            {
+                Directory.CreateDirectory(SavePath);
+            }
+        }
+
         private void Update()
         {
+            // Only auto-save while actively playing
+            if (GameStateManager.Instance == null ||
+                !GameStateManager.Instance.IsState(GameState.Playing)) return;
+
             autoSaveTimer += Time.deltaTime;
             if (autoSaveTimer >= autoSaveInterval)
             {
@@ -24,27 +37,25 @@ namespace Managers
             }
         }
 
-        private void Awake()
-        {
-            if (!Directory.Exists(SavePath))
-            {
-                Directory.CreateDirectory(SavePath);
-            }
-        }
-
         public void SaveGame(int slot = 0)
         {
             string saveFile = GetSaveFilePath(slot);
-            SaveData saveData = new SaveData
+            var saveData = new SaveData
             {
-                saveTime = DateTime.Now.ToString(),
-                gameState = GameStateManager.Instance.CurrentState.ToString()
+                saveTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                gameState = GameStateManager.Instance?.CurrentState.ToString() ?? string.Empty
             };
 
-            string jsonData = JsonUtility.ToJson(saveData, true);
-            File.WriteAllText(saveFile, jsonData);
-
-            Debug.Log($"Game saved to slot {slot} at {saveFile}");
+            try
+            {
+                File.WriteAllText(saveFile, JsonUtility.ToJson(saveData, true));
+                Framework.Events.EventManager.Instance?.TriggerEvent(Framework.Events.GameEvents.SAVE_GAME);
+                Debug.Log($"Game saved to slot {slot}");
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Failed to save slot {slot}: {e.Message}");
+            }
         }
 
         public void LoadGame(int slot = 0)
@@ -57,13 +68,27 @@ namespace Managers
                 return;
             }
 
-            string jsonData = File.ReadAllText(saveFile);
-            SaveData saveData = JsonUtility.FromJson<SaveData>(jsonData);
+            try
+            {
+                string json = File.ReadAllText(saveFile);
+                SaveData saveData = JsonUtility.FromJson<SaveData>(json);
 
-            Debug.Log($"Game loaded from slot {slot}: {saveData.saveTime}");
+                ApplySaveData(saveData);
+                Framework.Events.EventManager.Instance?.TriggerEvent(Framework.Events.GameEvents.LOAD_GAME);
+                Debug.Log($"Game loaded from slot {slot}: {saveData.saveTime}");
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Failed to load slot {slot}: {e.Message}");
+            }
+        }
 
-            // Trigger load event
-            Framework.Events.EventManager.Instance.TriggerEvent(Framework.Events.GameEvents.LOAD_GAME);
+        private void ApplySaveData(SaveData saveData)
+        {
+            if (Enum.TryParse<GameState>(saveData.gameState, out GameState restoredState))
+            {
+                GameStateManager.Instance?.ChangeState(restoredState);
+            }
         }
 
         public void AutoSave()
@@ -72,10 +97,7 @@ namespace Managers
             SaveGame(99);
         }
 
-        public void QuickSave()
-        {
-            SaveGame(98);
-        }
+        public void QuickSave() => SaveGame(98);
 
         public void DeleteSave(int slot)
         {
@@ -87,15 +109,10 @@ namespace Managers
             }
         }
 
-        public bool HasSaveFile(int slot)
-        {
-            return File.Exists(GetSaveFilePath(slot));
-        }
+        public bool HasSaveFile(int slot) => File.Exists(GetSaveFilePath(slot));
 
-        private string GetSaveFilePath(int slot)
-        {
-            return Path.Combine(SavePath, $"save_{slot}.json");
-        }
+        private string GetSaveFilePath(int slot) =>
+            Path.Combine(SavePath, $"save_{slot}.json");
 
         private void RotateAutoSaves()
         {

@@ -7,7 +7,8 @@ namespace Framework.Events
 {
     public class EventManager : Singleton<EventManager>
     {
-        private Dictionary<string, List<Action<object>>> eventDictionary = new Dictionary<string, List<Action<object>>>();
+        private readonly Dictionary<string, List<Action<object>>> eventDictionary =
+            new Dictionary<string, List<Action<object>>>();
 
         public void AddListener(string eventName, Action<object> listener)
         {
@@ -20,10 +21,10 @@ namespace Framework.Events
 
         public void RemoveListener(string eventName, Action<object> listener)
         {
-            if (eventDictionary.ContainsKey(eventName))
+            if (eventDictionary.TryGetValue(eventName, out var listeners))
             {
-                eventDictionary[eventName].Remove(listener);
-                if (eventDictionary[eventName].Count == 0)
+                listeners.Remove(listener);
+                if (listeners.Count == 0)
                 {
                     eventDictionary.Remove(eventName);
                 }
@@ -32,14 +33,25 @@ namespace Framework.Events
 
         public void TriggerEvent(string eventName, object data = null)
         {
-            if (eventDictionary.ContainsKey(eventName))
+            if (!eventDictionary.TryGetValue(eventName, out var listeners)) return;
+
+            // Snapshot prevents InvalidOperationException if a listener removes itself
+            var snapshot = new List<Action<object>>(listeners);
+            foreach (var listener in snapshot)
             {
-                foreach (var listener in eventDictionary[eventName])
+                try
                 {
                     listener.Invoke(data);
                 }
+                catch (Exception e)
+                {
+                    Debug.LogError($"[EventManager] Exception in listener for '{eventName}': {e}");
+                }
             }
         }
+
+        public bool HasListeners(string eventName) =>
+            eventDictionary.TryGetValue(eventName, out var l) && l.Count > 0;
 
         private void OnDestroy()
         {

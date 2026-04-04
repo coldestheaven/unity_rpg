@@ -40,37 +40,29 @@ namespace Framework.Base
     {
         private static T _instance;
         private static readonly object _lock = new object();
-        private static bool _applicationIsQuitting = false;
 
         public static T Instance
         {
             get
             {
-                if (_applicationIsQuitting)
-                {
-                    return null;
-                }
+                if (!Application.isPlaying) return null;
 
                 lock (_lock)
                 {
+                    if (_instance != null) return _instance;
+
+#if UNITY_2023_1_OR_NEWER
+                    _instance = FindFirstObjectByType<T>();
+#else
+                    _instance = (T)FindObjectOfType(typeof(T));
+#endif
                     if (_instance == null)
                     {
-                        _instance = (T)FindObjectOfType(typeof(T));
-
-                        if (FindObjectsOfType(typeof(T)).Length > 1)
-                        {
-                            Debug.LogError("[Singleton] Something went really wrong - there should never be more than 1 singleton!");
-                            return _instance;
-                        }
-
-                        if (_instance == null)
-                        {
-                            GameObject singleton = new GameObject();
-                            _instance = singleton.AddComponent<T>();
-                            singleton.name = "(singleton) " + typeof(T).ToString();
-                            DontDestroyOnLoad(singleton);
-                        }
+                        var singleton = new GameObject("(singleton) " + typeof(T));
+                        _instance = singleton.AddComponent<T>();
+                        DontDestroyOnLoad(singleton);
                     }
+
                     return _instance;
                 }
             }
@@ -78,20 +70,29 @@ namespace Framework.Base
 
         protected virtual void Awake()
         {
-            if (_instance == null)
+            lock (_lock)
             {
-                _instance = this as T;
-                DontDestroyOnLoad(gameObject);
-            }
-            else if (_instance != this)
-            {
-                Destroy(gameObject);
+                if (_instance == null)
+                {
+                    _instance = this as T;
+                    DontDestroyOnLoad(gameObject);
+                }
+                else if (_instance != this)
+                {
+                    Destroy(gameObject);
+                }
             }
         }
 
         protected virtual void OnDestroy()
         {
-            _applicationIsQuitting = true;
+            lock (_lock)
+            {
+                if (_instance == this)
+                {
+                    _instance = null;
+                }
+            }
         }
     }
 }

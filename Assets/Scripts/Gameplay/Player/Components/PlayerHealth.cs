@@ -40,7 +40,7 @@ namespace Gameplay.Player
             StopAllCoroutines();
             isInvincible = false;
             IsDead = false;
-            currentHealth = Mathf.Clamp(healthPercent, 0f, maxHealth);
+            currentHealth = Mathf.Clamp(maxHealth * healthPercent, 1f, maxHealth);
             NotifyHealthChanged();
             OnRevived();
         }

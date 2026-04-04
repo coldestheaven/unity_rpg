@@ -1,11 +1,16 @@
 using UnityEngine;
-using RPG.Items;
 
 namespace RPG.Items
 {
+    public enum ConsumableItemType
+    {
+        HealthPotion,
+        ManaPotion
+    }
+
     public class Consumable : MonoBehaviour
     {
-        public ItemType itemType;
+        public ConsumableItemType itemType;
         public int effectAmount = 20;
         public float cooldown = 1f;
 
@@ -17,15 +22,15 @@ namespace RPG.Items
 
             switch (itemType)
             {
-                case ItemType.HealthPotion:
-                    Player.PlayerHealth playerHealth = player.GetComponent<Player.PlayerHealth>();
+                case ConsumableItemType.HealthPotion:
+                    var playerHealth = player.GetComponent<Gameplay.Player.PlayerHealth>();
                     if (playerHealth != null)
                     {
                         playerHealth.Heal(effectAmount);
                     }
                     break;
 
-                case ItemType.ManaPotion:
+                case ConsumableItemType.ManaPotion:
                     Debug.Log("恢复魔法值: " + effectAmount);
                     break;
             }
@@ -62,6 +67,8 @@ namespace RPG.Items
 
         public void EquipWeapon(Weapon weapon)
         {
+            if (weapon == null) return;
+
             equippedWeapon = weapon;
             bonusAttackPower = weapon.damage;
 
@@ -76,14 +83,7 @@ namespace RPG.Items
             Debug.Log("卸下了武器");
         }
 
-        public int GetTotalAttackPower(int baseAttack)
-        {
-            return baseAttack + bonusAttackPower;
-        }
-
-        public int GetTotalDefense(int baseDefense)
-        {
-            return baseDefense + bonusDefense;
-        }
+        public int GetTotalAttackPower(int baseAttack) => baseAttack + bonusAttackPower;
+        public int GetTotalDefense(int baseDefense) => baseDefense + bonusDefense;
     }
 }

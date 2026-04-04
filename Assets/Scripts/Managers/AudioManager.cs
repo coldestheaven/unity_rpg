@@ -17,8 +17,8 @@ namespace Managers
             get => musicVolume;
             set
             {
-                musicVolume = value;
-                musicSource.volume = musicVolume;
+                musicVolume = Mathf.Clamp01(value);
+                if (musicSource != null) musicSource.volume = musicVolume;
             }
         }
 
@@ -27,8 +27,8 @@ namespace Managers
             get => sfxVolume;
             set
             {
-                sfxVolume = value;
-                sfxSource.volume = sfxVolume;
+                sfxVolume = Mathf.Clamp01(value);
+                if (sfxSource != null) sfxSource.volume = sfxVolume;
             }
         }
 

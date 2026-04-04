@@ -39,7 +39,11 @@ namespace UI.Controllers
             }
 
             // Auto-find panels if not assigned
+#if UNITY_2023_1_OR_NEWER
+            UIPanelBase[] allPanels = FindObjectsByType<UIPanelBase>(FindObjectsSortMode.None);
+#else
             UIPanelBase[] allPanels = FindObjectsOfType<UIPanelBase>();
+#endif
             foreach (var panel in allPanels)
             {
                 string panelName = panel.GetType().Name;

@@ -16,11 +16,14 @@ namespace RPG.Core
             {
                 if (instance == null)
                 {
+#if UNITY_2023_1_OR_NEWER
+                    instance = FindFirstObjectByType<T>();
+#else
                     instance = FindObjectOfType<T>();
-
+#endif
                     if (instance == null)
                     {
-                        GameObject singletonObject = new GameObject(typeof(T).Name);
+                        var singletonObject = new GameObject(typeof(T).Name);
                         instance = singletonObject.AddComponent<T>();
                         DontDestroyOnLoad(singletonObject);
                     }
