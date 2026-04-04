@@ -1,6 +1,7 @@
 using UnityEngine;
-using System.Collections.Generic;
 using System;
+using System.Collections.Generic;
+using Framework.Events;
 
 namespace RPG.Items
 {
@@ -284,7 +285,7 @@ namespace RPG.Items
             gold += amount;
             OnGoldChanged?.Invoke(gold);
 
-            RPG.Core.EventManager.Instance?.TriggerEvent("GoldChanged", new GoldEventArgs
+            EventManager.Instance?.TriggerEvent("GoldChanged", new GoldEventArgs
             {
                 currentGold = gold,
                 changeAmount = amount
@@ -301,7 +302,7 @@ namespace RPG.Items
             gold -= amount;
             OnGoldChanged?.Invoke(gold);
 
-            RPG.Core.EventManager.Instance?.TriggerEvent("GoldChanged", new GoldEventArgs
+            EventManager.Instance?.TriggerEvent("GoldChanged", new GoldEventArgs
             {
                 currentGold = gold,
                 changeAmount = -amount

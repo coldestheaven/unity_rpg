@@ -1,7 +1,7 @@
 using UnityEngine;
-using RPG.Core;
 using System;
 using Gameplay.Combat;
+using Framework.Events;
 
 namespace RPG.Skills
 {

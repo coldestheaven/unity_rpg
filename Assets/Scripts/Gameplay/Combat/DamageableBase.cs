@@ -5,6 +5,11 @@ using UnityEngine;
 
 namespace Gameplay.Combat
 {
+    public interface IDamageReceiver
+    {
+        void ReceiveDamage(DamageInfo damageInfo);
+    }
+
     public abstract class DamageableBase : MonoBehaviourBase, IDamageable, IKillable, IDamageReceiver
     {
         [SerializeField] protected float maxHealth = 100f;

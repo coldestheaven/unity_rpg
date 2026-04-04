@@ -1,5 +1,6 @@
 using UnityEngine;
 using System;
+using Framework.Events;
 
 namespace RPG.Quests
 {
@@ -227,7 +228,7 @@ namespace RPG.Quests
             OnStateChanged?.Invoke(State);
             OnQuestCompleted?.Invoke();
 
-            RPG.Core.EventManager.Instance?.TriggerEvent("QuestCompleted", new QuestEventArgs
+            EventManager.Instance?.TriggerEvent("QuestCompleted", new QuestEventArgs
             {
                 questId = QuestData.questId,
                 questName = QuestData.questName,
@@ -282,7 +283,7 @@ namespace RPG.Quests
                     // 检查是否所有目标都完成了
                     if (IsAllObjectivesCompleted())
                     {
-                        RPG.Core.EventManager.Instance?.TriggerEvent("QuestObjectivesCompleted", new QuestEventArgs
+                        EventManager.Instance?.TriggerEvent("QuestObjectivesCompleted", new QuestEventArgs
                         {
                             questId = QuestData.questId,
                             questName = QuestData.questName,

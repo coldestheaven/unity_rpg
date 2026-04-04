@@ -1,5 +1,6 @@
 using UnityEngine;
 using System;
+using Framework.Events;
 
 namespace RPG.Achievements
 {
@@ -248,7 +249,7 @@ namespace RPG.Achievements
             Data.Unlock();
             OnAchievementUnlocked?.Invoke(this);
 
-            RPG.Core.EventManager.Instance?.TriggerEvent("AchievementUnlocked", new AchievementEventArgs
+            EventManager.Instance?.TriggerEvent("AchievementUnlocked", new AchievementEventArgs
             {
                 achievementId = Data.achievementId,
                 achievementName = Data.achievementName,
@@ -269,7 +270,7 @@ namespace RPG.Achievements
             Data.ClaimRewards();
             GiveRewards();
 
-            RPG.Core.EventManager.Instance?.TriggerEvent("AchievementRewardsClaimed", new AchievementEventArgs
+            EventManager.Instance?.TriggerEvent("AchievementRewardsClaimed", new AchievementEventArgs
             {
                 achievementId = Data.achievementId,
                 achievementName = Data.achievementName,

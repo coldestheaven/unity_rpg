@@ -1,5 +1,6 @@
 using UnityEngine;
 using Core.Stats;
+using Framework.Events;
 
 namespace RPG.Items
 {
@@ -152,7 +153,7 @@ namespace RPG.Items
                 float totalHeal = healAmount + (health.MaxHealth * healPercentage);
                 health.Heal(totalHeal);
 
-                RPG.Core.EventManager.Instance?.TriggerEvent("ItemUsed", new ItemUsedEventArgs
+                EventManager.Instance?.TriggerEvent("ItemUsed", new ItemUsedEventArgs
                 {
                     itemName = itemName,
                     itemType = itemType,
@@ -184,7 +185,7 @@ namespace RPG.Items
                     buffMoveSpeed),
                 buffDuration);
 
-            RPG.Core.EventManager.Instance?.TriggerEvent("ItemUsed", new ItemUsedEventArgs
+            EventManager.Instance?.TriggerEvent("ItemUsed", new ItemUsedEventArgs
             {
                 itemName = itemName,
                 itemType = itemType,
@@ -296,7 +297,7 @@ namespace RPG.Items
         public override void OnPickup(GameObject player)
         {
             base.OnPickup(player);
-            RPG.Core.EventManager.Instance?.TriggerEvent("QuestItemCollected", new QuestItemEventArgs
+            EventManager.Instance?.TriggerEvent("QuestItemCollected", new QuestItemEventArgs
             {
                 itemName = itemName,
                 questId = questId

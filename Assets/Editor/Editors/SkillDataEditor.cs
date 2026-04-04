@@ -1,22 +1,23 @@
 using UnityEngine;
 using UnityEditor;
+using RPG.Skills;
 
 namespace Editor
 {
     [CustomEditor(typeof(SkillData), true)]
-    public class SkillDataEditor : Editor
+    public class SkillDataEditor : UnityEditor.Editor
     {
         private SerializedProperty skillNameProp;
-        private SerializedProperty skillDescriptionProp;
-        private SerializedProperty damageProp;
+        private SerializedProperty descriptionProp;
+        private SerializedProperty baseDamageProp;
         private SerializedProperty cooldownProp;
         private SerializedProperty manaCostProp;
 
         private void OnEnable()
         {
             skillNameProp = serializedObject.FindProperty("skillName");
-            skillDescriptionProp = serializedObject.FindProperty("skillDescription");
-            damageProp = serializedObject.FindProperty("damage");
+            descriptionProp = serializedObject.FindProperty("description");
+            baseDamageProp = serializedObject.FindProperty("baseDamage");
             cooldownProp = serializedObject.FindProperty("cooldown");
             manaCostProp = serializedObject.FindProperty("manaCost");
         }
@@ -38,13 +39,13 @@ namespace Editor
         {
             EditorGUILayout.LabelField("Basic Info", EditorStyles.boldLabel);
             EditorGUILayout.PropertyField(skillNameProp, new GUIContent("Skill Name"));
-            EditorGUILayout.PropertyField(skillDescriptionProp, new GUIContent("Description"), true);
+            EditorGUILayout.PropertyField(descriptionProp, new GUIContent("Description"), true);
         }
 
         private void DrawCombatStats()
         {
             EditorGUILayout.LabelField("Combat Stats", EditorStyles.boldLabel);
-            EditorGUILayout.PropertyField(damageProp, new GUIContent("Damage"));
+            EditorGUILayout.PropertyField(baseDamageProp, new GUIContent("Base Damage"));
             EditorGUILayout.PropertyField(cooldownProp, new GUIContent("Cooldown (s)"));
             EditorGUILayout.PropertyField(manaCostProp, new GUIContent("Mana Cost"));
         }
@@ -54,21 +55,5 @@ namespace Editor
             EditorGUILayout.LabelField("Effect Settings", EditorStyles.boldLabel);
             EditorGUILayout.HelpBox("Configure skill effects here", MessageType.Info);
         }
-    }
-
-    // Placeholder SkillData class
-    public class SkillData : ScriptableObject
-    {
-        [SerializeField] private string skillName;
-        [SerializeField] [TextArea] private string skillDescription;
-        [SerializeField] private int damage;
-        [SerializeField] private float cooldown;
-        [SerializeField] private int manaCost;
-
-        public string SkillName => skillName;
-        public string SkillDescription => skillDescription;
-        public int Damage => damage;
-        public float Cooldown => cooldown;
-        public int ManaCost => manaCost;
     }
 }

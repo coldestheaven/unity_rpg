@@ -3,10 +3,27 @@ using RPG.Core;
 
 namespace RPG.Player
 {
+    [System.Serializable]
+    public struct PlayerStats
+    {
+        public int maxHealth;
+        public int attackPower;
+        public int defense;
+        public float movementSpeed;
+
+        public PlayerStats(int maxHealth, int attackPower, int defense, float movementSpeed)
+        {
+            this.maxHealth = maxHealth;
+            this.attackPower = attackPower;
+            this.defense = defense;
+            this.movementSpeed = movementSpeed;
+        }
+    }
+
     /// <summary>
     /// 玩家状态管理器 - 负责玩家的所有状态数据
     /// </summary>
-    public class PlayerState : ScriptableObject
+    public class PlayerState : MonoBehaviour
     {
         [System.Serializable]
         public class PlayerData

@@ -1,6 +1,8 @@
 using UnityEngine;
+using System;
 using System.Collections.Generic;
 using Core.Stats;
+using Framework.Events;
 
 namespace RPG.Items
 {
@@ -68,7 +70,7 @@ namespace RPG.Items
             OnEquipmentChanged?.Invoke(slot, equipment);
             NotifyModifiersChanged();
 
-            RPG.Core.EventManager.Instance?.TriggerEvent("ItemEquipped", new EquipmentEventArgs
+            EventManager.Instance?.TriggerEvent("ItemEquipped", new EquipmentEventArgs
             {
                 itemData = equipment,
                 slot = slot,
@@ -100,7 +102,7 @@ namespace RPG.Items
             OnEquipmentUnequipped?.Invoke(slot);
             NotifyModifiersChanged();
 
-            RPG.Core.EventManager.Instance?.TriggerEvent("ItemEquipped", new EquipmentEventArgs
+            EventManager.Instance?.TriggerEvent("ItemEquipped", new EquipmentEventArgs
             {
                 itemData = item,
                 slot = slot,
@@ -143,7 +145,7 @@ namespace RPG.Items
             OnEquipmentChanged?.Invoke(slot, fromInventory);
             NotifyModifiersChanged();
 
-            RPG.Core.EventManager.Instance?.TriggerEvent("ItemEquipped", new EquipmentEventArgs
+            EventManager.Instance?.TriggerEvent("ItemEquipped", new EquipmentEventArgs
             {
                 itemData = fromInventory,
                 slot = slot,

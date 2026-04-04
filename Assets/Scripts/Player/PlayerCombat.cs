@@ -1,4 +1,6 @@
 using UnityEngine;
+using Framework.Events;
+using Framework.Interfaces;
 
 namespace RPG.Player
 {
@@ -93,7 +95,7 @@ namespace RPG.Player
             EventManager.Instance?.TriggerEvent("PlayerAttacked", new AttackEventArgs
             {
                 comboCount = currentCombo,
-                damage = attackDamage
+                damage = (int)attackDamage
             });
         }
 
@@ -107,11 +109,11 @@ namespace RPG.Player
             Collider2D[] enemies = Physics2D.OverlapCircleAll(transform.position, attackRange, enemyLayer);
             foreach (var enemy in enemies)
             {
-                var damageable = enemy.GetComponent<RPG.Core.IDamageable>();
+                var damageable = enemy.GetComponent<IDamageable>();
                 if (damageable != null)
                 {
                     damageable.TakeDamage(attackDamage, transform.position);
-                    OnHit?.Invoke(attackDamage);
+                    OnHit?.Invoke((int)attackDamage);
                 }
             }
         }

@@ -1,4 +1,5 @@
 using UnityEngine;
+using Framework.Events;
 
 namespace RPG.Player
 {

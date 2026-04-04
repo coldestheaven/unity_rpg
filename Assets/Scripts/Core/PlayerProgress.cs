@@ -158,6 +158,11 @@ namespace RPG.Core
         {
             OnProgressChanged?.Invoke(Progress);
         }
+
+        public void SaveProgress()
+        {
+            SaveSystem.Instance?.SaveGame();
+        }
     }
 
     [Serializable]
@@ -174,5 +179,12 @@ namespace RPG.Core
         public int level;
         public float currentExperience;
         public float experienceToNextLevel;
+    }
+
+    [Serializable]
+    public class GoldEventArgs
+    {
+        public int currentGold;
+        public int changeAmount;
     }
 }

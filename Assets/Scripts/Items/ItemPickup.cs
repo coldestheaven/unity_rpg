@@ -1,4 +1,5 @@
 using UnityEngine;
+using Framework.Events;
 
 namespace RPG.Items
 {
@@ -193,7 +194,7 @@ namespace RPG.Items
 
         private void OnPickupSuccess(GameObject player)
         {
-            RPG.Core.EventManager.Instance?.TriggerEvent("ItemPickedUp", new ItemPickupEventArgs
+            EventManager.Instance?.TriggerEvent("ItemPickedUp", new ItemPickupEventArgs
             {
                 itemName = itemData?.itemName,
                 itemType = itemData?.itemType ?? ItemType.Consumable,
@@ -208,7 +209,7 @@ namespace RPG.Items
         {
             Debug.LogWarning($"Failed to pickup {itemData?.itemName}: {result}");
 
-            RPG.Core.EventManager.Instance?.TriggerEvent("ItemPickupFailed", new ItemPickupFailedEventArgs
+            EventManager.Instance?.TriggerEvent("ItemPickupFailed", new ItemPickupFailedEventArgs
             {
                 itemName = itemData?.itemName,
                 result = result

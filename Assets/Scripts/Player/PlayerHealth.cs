@@ -1,5 +1,8 @@
 using UnityEngine;
 using RPG.Core;
+using Framework.Events;
+using Framework.Interfaces;
+using UI.Views;
 
 namespace RPG.Player
 {
@@ -8,7 +11,7 @@ namespace RPG.Player
     /// 使用事件系统解耦UI更新
     /// </summary>
     [RequireComponent(typeof(PlayerState))]
-    public class PlayerHealth : MonoBehaviour, IDamageable
+    public class PlayerHealth : MonoBehaviour
     {
         [Header("生命值设置")]
         public PlayerStats stats = new PlayerStats(100, 10, 0, 5f);
@@ -50,7 +53,7 @@ namespace RPG.Player
         private void InitializeHealth()
         {
             state.Initialize(stats);
-            healthBar?.SetMaxHealth(MaxHealth);
+            healthBar?.SetHealth(CurrentHealth, MaxHealth);
             OnHealthChanged?.Invoke(CurrentHealth);
         }
 
@@ -61,7 +64,7 @@ namespace RPG.Player
             int actualDamage = Mathf.Max(damage - state.CurrentData.defense, 0);
             state.ModifyHealth(-actualDamage);
 
-            healthBar?.SetHealth(CurrentHealth);
+            healthBar?.SetHealth(CurrentHealth, MaxHealth);
             OnHealthChanged?.Invoke(CurrentHealth);
             OnPlayerDamaged?.Invoke(actualDamage);
 
@@ -86,7 +89,7 @@ namespace RPG.Player
             if (isDead) return;
 
             state.ModifyHealth(amount);
-            healthBar?.SetHealth(CurrentHealth);
+            healthBar?.SetHealth(CurrentHealth, MaxHealth);
             OnHealthChanged?.Invoke(CurrentHealth);
 
             EventManager.Instance?.TriggerEvent("PlayerHealthChanged", new HealthChangedEventArgs
@@ -172,7 +175,7 @@ namespace RPG.Player
         {
             isDead = false;
             state.ModifyHealth(healthAmount);
-            healthBar?.SetHealth(CurrentHealth);
+            healthBar?.SetHealth(CurrentHealth, MaxHealth);
             OnHealthChanged?.Invoke(CurrentHealth);
 
             EventManager.Instance?.TriggerEvent("PlayerHealthChanged", new HealthChangedEventArgs
@@ -185,7 +188,7 @@ namespace RPG.Player
         public void ResetHealth()
         {
             state.ModifyHealth(MaxHealth);
-            healthBar?.SetHealth(CurrentHealth);
+            healthBar?.SetHealth(CurrentHealth, MaxHealth);
             isInvincible = false;
             isDead = false;
             OnHealthChanged?.Invoke(CurrentHealth);

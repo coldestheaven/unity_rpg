@@ -1,3 +1,5 @@
+using UnityEngine;
+
 namespace RPG.Core
 {
     [System.Serializable]
