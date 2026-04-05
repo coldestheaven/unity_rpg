@@ -36,6 +36,7 @@ namespace RPG.Simulation
         // ── Sub-systems ───────────────────────────────────────────────────────
         public ProgressSimulation Progress { get; }
         public SkillCooldownSimulation Skills { get; }
+        public CombatStateSimulation Combat { get; }
 
         // ── Thread infrastructure ─────────────────────────────────────────────
         private readonly LogicThread _logicThread;
@@ -57,6 +58,7 @@ namespace RPG.Simulation
 
             Progress = new ProgressSimulation();
             Skills = new SkillCooldownSimulation(skillSlotCount, maxMana);
+            Combat = new CombatStateSimulation();
             _logicThread = new LogicThread("GameLogicThread");
             _clock = Stopwatch.StartNew();
 
@@ -97,8 +99,8 @@ namespace RPG.Simulation
 
             // ── Tick all sub-systems ──────────────────────────────────────────
             Skills.Tick(deltaSeconds);
+            Combat.Tick(deltaSeconds);
             // Progress has no time-based updates; mutations are event-driven.
-            // Future sub-systems (AI timers, regen, DoT) are ticked here.
 
             // ── Pace the tick rate ────────────────────────────────────────────
             long elapsed = _clock.ElapsedMilliseconds - nowMs;
