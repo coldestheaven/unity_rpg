@@ -1,160 +1,52 @@
-using UnityEngine;
+using System;
 using System.Collections.Generic;
-using Framework.Interfaces;
+using RPG.Data;
+using UnityEngine;
 
 namespace RPG.Quests
 {
     /// <summary>
-    /// 任务数据库 - ScriptableObject
-    /// Implements IRepository&lt;QuestData&gt; so callers depend on the abstraction.
+    /// 任务数据库 — 存储所有 <see cref="QuestData"/> 资产。
+    /// 继承 <see cref="RepositoryBase{T}"/>，自动获得完整的 IRepository&lt;QuestData&gt; 实现。
+    ///
+    /// 创建: Assets/Create → RPG/Data/Quest Database
     /// </summary>
     [CreateAssetMenu(fileName = "QuestDatabase", menuName = "RPG/Data/Quest Database")]
-    public class QuestDatabase : ScriptableObject, IRepository<QuestData>
+    public class QuestDatabase : RepositoryBase<QuestData>
     {
-        [System.Serializable]
+        [Serializable]
         public class QuestEntry
         {
+            [Tooltip("任务唯一 ID。建议格式: quest_main_01")]
             public string questId;
             public QuestData questData;
         }
 
-        public QuestEntry[] quests;
+        [SerializeField] private QuestEntry[] quests = Array.Empty<QuestEntry>();
 
-        private Dictionary<string, QuestData> questDictionary;
-
-        /// <summary>
-        /// 初始化数据库
-        /// </summary>
-        public void Initialize()
+        protected override void PopulateDictionary(Dictionary<string, QuestData> dict)
         {
-            questDictionary = new Dictionary<string, QuestData>();
-
-            if (quests != null)
+            if (quests == null) return;
+            int skipped = 0;
+            foreach (var e in quests)
             {
-                foreach (var entry in quests)
-                {
-                    if (entry != null && entry.questData != null && !string.IsNullOrEmpty(entry.questId))
-                    {
-                        questDictionary[entry.questId] = entry.questData;
-                    }
-                }
+                if (e == null || e.questData == null || string.IsNullOrEmpty(e.questId))
+                { skipped++; continue; }
+                dict[e.questId] = e.questData;
             }
-
-            Debug.Log($"QuestDatabase initialized with {questDictionary.Count} quests");
+            if (skipped > 0)
+                Debug.LogWarning($"[QuestDatabase] {skipped} 条记录缺少 ID 或数据，已跳过。");
         }
 
-        /// <summary>
-        /// 获取任务数据
-        /// </summary>
-        public QuestData GetQuest(string questId)
-        {
-            if (string.IsNullOrEmpty(questId))
-            {
-                return null;
-            }
+        // ── 额外查询 ──────────────────────────────────────────────────────────
 
-            // 确保字典已初始化
-            if (questDictionary == null)
-            {
-                Initialize();
-            }
+        /// <summary>按任务类型过滤。</summary>
+        public IReadOnlyList<QuestData> GetByType(QuestType type) => Query(q => q.questType == type);
 
-            questDictionary.TryGetValue(questId, out QuestData questData);
-            return questData;
-        }
+        /// <summary>获取所有主线任务。</summary>
+        public IReadOnlyList<QuestData> GetMainQuests()  => GetByType(QuestType.Main);
 
-        /// <summary>
-        /// 获取所有任务
-        /// </summary>
-        public QuestData[] GetAllQuests()
-        {
-            if (questDictionary == null)
-            {
-                Initialize();
-            }
-
-            return new List<QuestData>(questDictionary.Values).ToArray();
-        }
-
-        /// <summary>
-        /// 根据类型获取任务
-        /// </summary>
-        public QuestData[] GetQuestsByType(QuestType type)
-        {
-            List<QuestData> result = new List<QuestData>();
-
-            foreach (var quest in questDictionary.Values)
-            {
-                if (quest.questType == type)
-                {
-                    result.Add(quest);
-                }
-            }
-
-            return result.ToArray();
-        }
-
-        /// <summary>
-        /// 获取主线任务
-        /// </summary>
-        public QuestData[] GetMainQuests()
-        {
-            return GetQuestsByType(QuestType.Main);
-        }
-
-        /// <summary>
-        /// 获取支线任务
-        /// </summary>
-        public QuestData[] GetSideQuests()
-        {
-            return GetQuestsByType(QuestType.Side);
-        }
-
-        /// <summary>
-        /// 添加任务到数据库
-        /// </summary>
-        public void AddQuest(string questId, QuestData questData)
-        {
-            if (questDictionary == null)
-            {
-                Initialize();
-            }
-
-            questDictionary[questId] = questData;
-
-            // 同时更新数组(运行时)
-            List<QuestEntry> entryList = new List<QuestEntry>(quests);
-            entryList.Add(new QuestEntry { questId = questId, questData = questData });
-            quests = entryList.ToArray();
-        }
-
-        /// <summary>
-        /// 检查任务是否存在
-        /// </summary>
-        public bool ContainsQuest(string questId)
-        {
-            return questDictionary != null && questDictionary.ContainsKey(questId);
-        }
-
-        // ── IRepository<QuestData> ─────────────────────────────────────────
-
-        public QuestData GetById(string id) => GetQuest(id);
-
-        public bool Exists(string id) => ContainsQuest(id);
-
-        public IReadOnlyList<QuestData> GetAll()
-        {
-            if (questDictionary == null) Initialize();
-            return new List<QuestData>(questDictionary.Values);
-        }
-
-        public int Count
-        {
-            get
-            {
-                if (questDictionary == null) Initialize();
-                return questDictionary.Count;
-            }
-        }
+        /// <summary>获取所有支线任务。</summary>
+        public IReadOnlyList<QuestData> GetSideQuests()  => GetByType(QuestType.Side);
     }
 }

@@ -109,27 +109,23 @@ namespace RPG.Data
 
         // ── 初始化 ────────────────────────────────────────────────────────────
 
+        /// <summary>
+        /// 初始化所有已赋值的数据库。
+        /// 数据库均继承 <see cref="RPG.Data.RepositoryBase{T}"/>，可直接调用 Initialize()，
+        /// 无需反射。
+        /// </summary>
         public void InitializeAll()
         {
-            TryInit(_itemDatabase);
-            TryInit(_skillDatabase);
-            TryInit(_enemyDatabase);
-            TryInit(_buffDatabase);
-            TryInit(_questDatabase);
-            TryInit(_achievementDatabase);
+            _itemDatabase?.Initialize();
+            _skillDatabase?.Initialize();
+            _enemyDatabase?.Initialize();
+            _buffDatabase?.Initialize();
+            _questDatabase?.Initialize();
+            _achievementDatabase?.Initialize();
         }
 
         // ── 内部工具 ──────────────────────────────────────────────────────────
 
-        private static void TryInit<T>(T db) where T : ScriptableObject
-        {
-            if (db == null) return;
-            var method = db.GetType().GetMethod("Initialize",
-                System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
-            method?.Invoke(db, null);
-        }
-
-        // 在访问时确保字典已建立
         private static IRepository<T> EnsureInit<T>(ScriptableObject db)
             where T : class
         {

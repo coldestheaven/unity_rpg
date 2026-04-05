@@ -1,162 +1,51 @@
-using UnityEngine;
+using System;
 using System.Collections.Generic;
-using Framework.Interfaces;
+using RPG.Data;
+using UnityEngine;
 
 namespace RPG.Items
 {
     /// <summary>
-    /// 物品数据库 - ScriptableObject
-    /// Implements IRepository&lt;ItemData&gt; so callers depend on the abstraction.
+    /// 物品数据库 — 存储所有 <see cref="ItemData"/> 资产。
+    /// 继承 <see cref="RepositoryBase{T}"/>，自动获得完整的 IRepository&lt;ItemData&gt; 实现。
+    ///
+    /// 创建: Assets/Create → RPG/Data/Item Database
     /// </summary>
     [CreateAssetMenu(fileName = "ItemDatabase", menuName = "RPG/Data/Item Database")]
-    public class ItemDatabase : ScriptableObject, IRepository<ItemData>
+    public class ItemDatabase : RepositoryBase<ItemData>
     {
-        [System.Serializable]
+        [Serializable]
         public class ItemEntry
         {
+            [Tooltip("物品唯一 ID。建议格式: item_sword")]
             public string itemId;
             public ItemData itemData;
         }
 
-        public ItemEntry[] items;
+        [SerializeField] private ItemEntry[] items = Array.Empty<ItemEntry>();
 
-        private Dictionary<string, ItemData> itemDictionary;
-
-        /// <summary>
-        /// 初始化数据库
-        /// </summary>
-        public void Initialize()
+        protected override void PopulateDictionary(Dictionary<string, ItemData> dict)
         {
-            itemDictionary = new Dictionary<string, ItemData>();
-
-            if (items != null)
+            if (items == null) return;
+            int skipped = 0;
+            foreach (var e in items)
             {
-                foreach (var entry in items)
-                {
-                    if (entry != null && entry.itemData != null && !string.IsNullOrEmpty(entry.itemId))
-                    {
-                        itemDictionary[entry.itemId] = entry.itemData;
-                    }
-                }
+                if (e == null || e.itemData == null || string.IsNullOrEmpty(e.itemId))
+                { skipped++; continue; }
+                dict[e.itemId] = e.itemData;
             }
-
-            Debug.Log($"ItemDatabase initialized with {itemDictionary.Count} items");
+            if (skipped > 0)
+                Debug.LogWarning($"[ItemDatabase] {skipped} 条记录缺少 ID 或数据，已跳过。");
         }
 
-        /// <summary>
-        /// 获取物品数据
-        /// </summary>
-        public ItemData GetItem(string itemId)
-        {
-            if (string.IsNullOrEmpty(itemId))
-            {
-                return null;
-            }
+        // ── 额外查询 ──────────────────────────────────────────────────────────
 
-            // 确保字典已初始化
-            if (itemDictionary == null)
-            {
-                Initialize();
-            }
+        /// <summary>按物品类型过滤。</summary>
+        public IReadOnlyList<ItemData> GetByType(ItemType type)
+            => Query(i => i.itemType == type);
 
-            itemDictionary.TryGetValue(itemId, out ItemData itemData);
-            return itemData;
-        }
-
-        /// <summary>
-        /// 获取所有物品
-        /// </summary>
-        public ItemData[] GetAllItems()
-        {
-            if (itemDictionary == null)
-            {
-                Initialize();
-            }
-
-            return new List<ItemData>(itemDictionary.Values).ToArray();
-        }
-
-        /// <summary>
-        /// 根据类型获取物品
-        /// </summary>
-        public ItemData[] GetItemsByType(ItemType type)
-        {
-            List<ItemData> result = new List<ItemData>();
-
-            foreach (var item in itemDictionary.Values)
-            {
-                if (item.itemType == type)
-                {
-                    result.Add(item);
-                }
-            }
-
-            return result.ToArray();
-        }
-
-        /// <summary>
-        /// 根据标签获取物品
-        /// </summary>
-        public ItemData[] GetItemsByTag(string tag)
-        {
-            List<ItemData> result = new List<ItemData>();
-
-            foreach (var item in itemDictionary.Values)
-            {
-                if (item.HasTag(tag))
-                {
-                    result.Add(item);
-                }
-            }
-
-            return result.ToArray();
-        }
-
-        /// <summary>
-        /// 添加物品到数据库
-        /// </summary>
-        public void AddItem(string itemId, ItemData itemData)
-        {
-            if (itemDictionary == null)
-            {
-                Initialize();
-            }
-
-            itemDictionary[itemId] = itemData;
-
-            // 同时更新数组(运行时)
-            List<ItemEntry> entryList = new List<ItemEntry>(items);
-            entryList.Add(new ItemEntry { itemId = itemId, itemData = itemData });
-            items = entryList.ToArray();
-        }
-
-        /// <summary>
-        /// 检查物品是否存在
-        /// </summary>
-        public bool ContainsItem(string itemId)
-        {
-            return itemDictionary != null && itemDictionary.ContainsKey(itemId);
-        }
-
-        // ── IRepository<ItemData> ──────────────────────────────────────────
-
-        public ItemData GetById(string id) => GetItem(id);
-
-        public bool Exists(string id) => ContainsItem(id);
-
-        public IReadOnlyList<ItemData> GetAll()
-        {
-            if (itemDictionary == null) Initialize();
-            return new List<ItemData>(itemDictionary.Values);
-        }
-
-        public int Count
-        {
-            get
-            {
-                if (itemDictionary == null) Initialize();
-                return itemDictionary.Count;
-            }
-        }
+        /// <summary>按标签过滤。</summary>
+        public IReadOnlyList<ItemData> GetByTag(string tag)
+            => Query(i => i.HasTag(tag));
     }
 }

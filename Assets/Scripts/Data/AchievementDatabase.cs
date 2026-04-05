@@ -1,162 +1,47 @@
-using UnityEngine;
+using System;
 using System.Collections.Generic;
-using Framework.Interfaces;
+using RPG.Data;
+using UnityEngine;
 
 namespace RPG.Achievements
 {
     /// <summary>
-    /// 成就数据库 - ScriptableObject
-    /// Implements IRepository&lt;AchievementData&gt; so callers depend on the abstraction.
+    /// 成就数据库 — 存储所有 <see cref="AchievementData"/> 资产。
+    /// 继承 <see cref="RepositoryBase{T}"/>，自动获得完整的 IRepository&lt;AchievementData&gt; 实现。
+    ///
+    /// 创建: Assets/Create → RPG/Data/Achievement Database
     /// </summary>
     [CreateAssetMenu(fileName = "AchievementDatabase", menuName = "RPG/Data/Achievement Database")]
-    public class AchievementDatabase : ScriptableObject, IRepository<AchievementData>
+    public class AchievementDatabase : RepositoryBase<AchievementData>
     {
-        [System.Serializable]
+        [Serializable]
         public class AchievementEntry
         {
+            [Tooltip("成就唯一 ID。建议格式: ach_first_kill")]
             public string achievementId;
             public AchievementData achievementData;
         }
 
-        public AchievementEntry[] achievements;
+        [SerializeField] private AchievementEntry[] achievements = Array.Empty<AchievementEntry>();
 
-        private Dictionary<string, AchievementData> achievementDictionary;
-
-        /// <summary>
-        /// 初始化数据库
-        /// </summary>
-        public void Initialize()
+        protected override void PopulateDictionary(Dictionary<string, AchievementData> dict)
         {
-            achievementDictionary = new Dictionary<string, AchievementData>();
-
-            if (achievements != null)
+            if (achievements == null) return;
+            int skipped = 0;
+            foreach (var e in achievements)
             {
-                foreach (var entry in achievements)
-                {
-                    if (entry != null && entry.achievementData != null && !string.IsNullOrEmpty(entry.achievementId))
-                    {
-                        achievementDictionary[entry.achievementId] = entry.achievementData;
-                    }
-                }
+                if (e == null || e.achievementData == null || string.IsNullOrEmpty(e.achievementId))
+                { skipped++; continue; }
+                dict[e.achievementId] = e.achievementData;
             }
-
-            Debug.Log($"AchievementDatabase initialized with {achievementDictionary.Count} achievements");
+            if (skipped > 0)
+                Debug.LogWarning($"[AchievementDatabase] {skipped} 条记录缺少 ID 或数据，已跳过。");
         }
 
-        /// <summary>
-        /// 获取成就数据
-        /// </summary>
-        public AchievementData GetAchievement(string achievementId)
-        {
-            if (string.IsNullOrEmpty(achievementId))
-            {
-                return null;
-            }
+        // ── 额外查询 ──────────────────────────────────────────────────────────
 
-            // 确保字典已初始化
-            if (achievementDictionary == null)
-            {
-                Initialize();
-            }
-
-            achievementDictionary.TryGetValue(achievementId, out AchievementData achievementData);
-            return achievementData;
-        }
-
-        /// <summary>
-        /// 获取所有成就
-        /// </summary>
-        public AchievementData[] GetAllAchievements()
-        {
-            if (achievementDictionary == null)
-            {
-                Initialize();
-            }
-
-            return new List<AchievementData>(achievementDictionary.Values).ToArray();
-        }
-
-        /// <summary>
-        /// 根据类型获取成就
-        /// </summary>
-        public AchievementData[] GetAchievementsByType(AchievementType type)
-        {
-            List<AchievementData> result = new List<AchievementData>();
-
-            foreach (var achievement in achievementDictionary.Values)
-            {
-                if (achievement.achievementType == type)
-                {
-                    result.Add(achievement);
-                }
-            }
-
-            return result.ToArray();
-        }
-
-        /// <summary>
-        /// 获取未隐藏的成就
-        /// </summary>
-        public AchievementData[] GetVisibleAchievements()
-        {
-            List<AchievementData> result = new List<AchievementData>();
-
-            foreach (var achievement in achievementDictionary.Values)
-            {
-                if (!achievement.isHidden)
-                {
-                    result.Add(achievement);
-                }
-            }
-
-            return result.ToArray();
-        }
-
-        /// <summary>
-        /// 添加成就到数据库
-        /// </summary>
-        public void AddAchievement(string achievementId, AchievementData achievementData)
-        {
-            if (achievementDictionary == null)
-            {
-                Initialize();
-            }
-
-            achievementDictionary[achievementId] = achievementData;
-
-            // 同时更新数组(运行时)
-            List<AchievementEntry> entryList = new List<AchievementEntry>(achievements);
-            entryList.Add(new AchievementEntry { achievementId = achievementId, achievementData = achievementData });
-            achievements = entryList.ToArray();
-        }
-
-        /// <summary>
-        /// 检查成就是否存在
-        /// </summary>
-        public bool ContainsAchievement(string achievementId)
-        {
-            return achievementDictionary != null && achievementDictionary.ContainsKey(achievementId);
-        }
-
-        // ── IRepository<AchievementData> ──────────────────────────────────
-
-        public AchievementData GetById(string id) => GetAchievement(id);
-
-        public bool Exists(string id) => ContainsAchievement(id);
-
-        public IReadOnlyList<AchievementData> GetAll()
-        {
-            if (achievementDictionary == null) Initialize();
-            return new List<AchievementData>(achievementDictionary.Values);
-        }
-
-        public int Count
-        {
-            get
-            {
-                if (achievementDictionary == null) Initialize();
-                return achievementDictionary.Count;
-            }
-        }
+        /// <summary>按成就类型过滤。</summary>
+        public IReadOnlyList<AchievementData> GetByType(AchievementType type)
+            => Query(a => a.achievementType == type);
     }
 }
