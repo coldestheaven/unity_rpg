@@ -106,7 +106,7 @@ namespace Gameplay.Player
         protected override void OnDeathInternal()
         {
             OnDeath?.Invoke();
-            Managers.GameStateManager.Instance?.ChangeState(Managers.GameState.GameOver);
+            RPG.Core.GameStateManager.Instance?.EndGame();
         }
     }
 }

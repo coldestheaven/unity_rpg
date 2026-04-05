@@ -18,8 +18,8 @@ namespace Gameplay.Player
         public bool CanInteract()
         {
             return FindBestInteractable() != null
-                && Managers.GameStateManager.Instance != null
-                && Managers.GameStateManager.Instance.CanInteract();
+                && RPG.Core.GameStateManager.Instance != null
+                && RPG.Core.GameStateManager.Instance.CanInteract();
         }
 
         public bool TryInteract()

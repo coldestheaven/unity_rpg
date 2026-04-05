@@ -3,243 +3,111 @@ using Framework.Events;
 
 namespace RPG.Core
 {
-    /// <summary>
-    /// 游戏状态枚举
-    /// </summary>
     public enum GameState
     {
-        MainMenu,       // 主菜单
-        Loading,        // 加载中
-        Playing,        // 游戏中
-        Paused,         // 暂停
-        GameOver,       // 游戏结束
-        Victory,        // 胜利
-        Cutscene        // 过场动画
+        MainMenu,
+        Loading,
+        Playing,
+        Paused,
+        GameOver,
+        Victory,
+        Cutscene
     }
 
     /// <summary>
-    /// 游戏状态管理器
+    /// 自包含的游戏状态管理器。
+    /// 负责状态转换、Time.timeScale 以及状态变更广播。
     /// </summary>
     public class GameStateManager : Singleton<GameStateManager>
     {
-        private GameState currentState;
-        private GameState previousState;
-        private Managers.GameStateManager runtimeStateManager;
+        private GameState _current;
+        private GameState _previous;
 
-        public GameState CurrentState => currentState;
-        public GameState PreviousState => previousState;
+        public GameState CurrentState  => _current;
+        public GameState PreviousState => _previous;
 
-        public event System.Action<GameState> OnStateChanged;
-        public event System.Action<GameState, GameState> OnStateTransition;
+        public event System.Action<GameState>             OnStateChanged;
+        public event System.Action<GameState, GameState>  OnStateTransition;
 
-        protected override void Awake()
-        {
-            base.Awake();
-            runtimeStateManager = Managers.GameStateManager.Instance;
+        // ── Public API ────────────────────────────────────────────────────────
 
-            if (runtimeStateManager != null)
-            {
-                runtimeStateManager.OnStateChanged += HandleRuntimeStateChanged;
-                HandleRuntimeStateChanged(runtimeStateManager.CurrentState);
-            }
-            else
-            {
-                SetState(GameState.MainMenu);
-            }
-        }
-
-        private void OnDestroy()
-        {
-            if (runtimeStateManager != null)
-            {
-                runtimeStateManager.OnStateChanged -= HandleRuntimeStateChanged;
-            }
-        }
-
-        /// <summary>
-        /// 设置游戏状态
-        /// </summary>
         public void SetState(GameState newState)
         {
-            if (currentState == newState) return;
+            if (_current == newState) return;
 
-            if (runtimeStateManager != null && TryMapToRuntime(newState, out Managers.GameState runtimeState))
-            {
-                runtimeStateManager.ChangeState(runtimeState);
-                return;
-            }
+            GameState old = _current;
+            _previous = _current;
+            _current  = newState;
 
-            ApplyState(newState);
-        }
-
-        private void HandleRuntimeStateChanged(Managers.GameState newState)
-        {
-            ApplyState(MapFromRuntime(newState));
-        }
-
-        private void ApplyState(GameState newState)
-        {
-            if (currentState == newState) return;
-
-            GameState oldState = currentState;
-            previousState = currentState;
-            currentState = newState;
+            ApplyTimeScale(newState);
 
             OnStateChanged?.Invoke(newState);
-            OnStateTransition?.Invoke(oldState, newState);
+            OnStateTransition?.Invoke(old, newState);
 
             EventManager.Instance?.TriggerEvent("GameStateChanged", new GameStateChangedEventArgs
             {
-                oldState = oldState,
+                oldState = old,
                 newState = newState
             });
 
-            Debug.Log($"Game state changed: {oldState} -> {newState}");
+            Debug.Log($"[GameState] {old} → {newState}");
         }
 
-        private bool TryMapToRuntime(GameState state, out Managers.GameState runtimeState)
-        {
-            switch (state)
-            {
-                case GameState.MainMenu:
-                    runtimeState = Managers.GameState.MainMenu;
-                    return true;
-                case GameState.Loading:
-                    runtimeState = Managers.GameState.Loading;
-                    return true;
-                case GameState.Playing:
-                    runtimeState = Managers.GameState.Playing;
-                    return true;
-                case GameState.Paused:
-                    runtimeState = Managers.GameState.Paused;
-                    return true;
-                case GameState.GameOver:
-                    runtimeState = Managers.GameState.GameOver;
-                    return true;
-                case GameState.Victory:
-                    runtimeState = Managers.GameState.Victory;
-                    return true;
-                default:
-                    runtimeState = Managers.GameState.Playing;
-                    return false;
-            }
-        }
-
-        private GameState MapFromRuntime(Managers.GameState state)
-        {
-            switch (state)
-            {
-                case Managers.GameState.MainMenu:
-                    return GameState.MainMenu;
-                case Managers.GameState.Loading:
-                    return GameState.Loading;
-                case Managers.GameState.Playing:
-                    return GameState.Playing;
-                case Managers.GameState.Paused:
-                    return GameState.Paused;
-                case Managers.GameState.GameOver:
-                    return GameState.GameOver;
-                case Managers.GameState.Victory:
-                    return GameState.Victory;
-                default:
-                    return GameState.Playing;
-            }
-        }
-
-        /// <summary>
-        /// 恢复到上一个状态
-        /// </summary>
-        public void RestorePreviousState()
-        {
-            if (previousState != GameState.MainMenu)
-            {
-                SetState(previousState);
-            }
-        }
-
-        /// <summary>
-        /// 检查是否处于指定状态
-        /// </summary>
-        public bool IsInState(GameState state)
-        {
-            return currentState == state;
-        }
-
-        /// <summary>
-        /// 检查是否可以暂停
-        /// </summary>
-        public bool CanPause()
-        {
-            return currentState == GameState.Playing || currentState == GameState.Paused;
-        }
-
-        /// <summary>
-        /// 检查是否可以进行游戏操作
-        /// </summary>
-        public bool CanPlayerAct()
-        {
-            return currentState == GameState.Playing;
-        }
-
-        /// <summary>
-        /// 开始游戏
-        /// </summary>
         public void StartGame()
         {
             SetState(GameState.Playing);
             EventManager.Instance?.TriggerEvent("GameStarted", null);
         }
 
-        /// <summary>
-        /// 暂停游戏
-        /// </summary>
         public void PauseGame()
         {
-            if (currentState == GameState.Playing)
-            {
-                Managers.GameManager.Instance?.PauseGame();
+            if (_current == GameState.Playing)
                 SetState(GameState.Paused);
-            }
         }
 
-        /// <summary>
-        /// 恢复游戏
-        /// </summary>
         public void ResumeGame()
         {
-            if (currentState == GameState.Paused)
-            {
-                Managers.GameManager.Instance?.ResumeGame();
+            if (_current == GameState.Paused)
                 SetState(GameState.Playing);
-            }
         }
 
-        /// <summary>
-        /// 游戏结束
-        /// </summary>
         public void EndGame()
         {
             SetState(GameState.GameOver);
             EventManager.Instance?.TriggerEvent("GameEnded", null);
         }
 
-        /// <summary>
-        /// 游戏胜利
-        /// </summary>
         public void Victory()
         {
             SetState(GameState.Victory);
             EventManager.Instance?.TriggerEvent("GameVictory", null);
         }
 
-        /// <summary>
-        /// 返回主菜单
-        /// </summary>
         public void ReturnToMainMenu()
         {
             SetState(GameState.MainMenu);
-            Time.timeScale = 1f;
             EventManager.Instance?.TriggerEvent("ReturnToMainMenu", null);
+        }
+
+        public void RestorePreviousState()
+        {
+            if (_previous != GameState.MainMenu)
+                SetState(_previous);
+        }
+
+        // ── Query helpers ─────────────────────────────────────────────────────
+
+        public bool IsInState(GameState state)  => _current == state;
+        public bool CanPause()                  => _current == GameState.Playing;
+        public bool CanPlayerAct()              => _current == GameState.Playing;
+        /// <summary>别名，供仍使用旧名称的代码调用。</summary>
+        public bool CanInteract()               => _current == GameState.Playing;
+
+        // ── Internal ──────────────────────────────────────────────────────────
+
+        private static void ApplyTimeScale(GameState state)
+        {
+            Time.timeScale = state == GameState.Paused ? 0f : 1f;
         }
     }
 

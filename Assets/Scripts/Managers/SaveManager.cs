@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using UnityEngine;
+using RPG.Core;
 
 namespace Managers
 {
@@ -25,9 +26,8 @@ namespace Managers
 
         private void Update()
         {
-            // Only auto-save while actively playing
             if (GameStateManager.Instance == null ||
-                !GameStateManager.Instance.IsState(GameState.Playing)) return;
+                !GameStateManager.Instance.IsInState(GameState.Playing)) return;
 
             autoSaveTimer += Time.deltaTime;
             if (autoSaveTimer >= autoSaveInterval)
@@ -42,7 +42,7 @@ namespace Managers
             string saveFile = GetSaveFilePath(slot);
             var saveData = new SaveData
             {
-                saveTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                saveTime  = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
                 gameState = GameStateManager.Instance?.CurrentState.ToString() ?? string.Empty
             };
 
@@ -87,7 +87,7 @@ namespace Managers
         {
             if (Enum.TryParse<GameState>(saveData.gameState, out GameState restoredState))
             {
-                GameStateManager.Instance?.ChangeState(restoredState);
+                GameStateManager.Instance?.SetState(restoredState);
             }
         }
 

@@ -24,6 +24,7 @@ namespace RPG.Core
         [Header("游戏设置")]
         public float baseEnemySpawnRate = 5f;
         public int baseEnemyDamage = 10;
+        [SerializeField] private int targetFrameRate = 60;
 
         [Header("逻辑线程")]
         [Tooltip("逻辑线程 Tick 频率（Hz）。30 = 低开销，60 = 更流畅的冷却/DoT 计时，上限 120。")]
@@ -65,6 +66,7 @@ namespace RPG.Core
                     tickRateHz: logicTickRateHz);
                 _simulation.Start();
 
+                Application.targetFrameRate = targetFrameRate;
                 InitializeManagers();
             }
             else
@@ -315,6 +317,15 @@ namespace RPG.Core
         }
 
         #endregion
+
+        public void QuitGame()
+        {
+#if UNITY_EDITOR
+            UnityEditor.EditorApplication.isPlaying = false;
+#else
+            Application.Quit();
+#endif
+        }
 
         #region Legacy Interface (兼容旧代码)
 

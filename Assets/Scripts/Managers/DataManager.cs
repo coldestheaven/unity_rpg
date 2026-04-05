@@ -19,13 +19,13 @@ namespace Managers
     {
         [Header("数据库（已废弃，GameDataService 接管后可留空）")]
         [SerializeField] private ItemDatabase        itemDatabase;
-        [SerializeField] private SkillDatabase       skillDatabase;
+        [SerializeField] private LegacySkillDatabase  skillDatabase;
         [SerializeField] private QuestDatabase       questDatabase;
         [SerializeField] private AchievementDatabase achievementDatabase;
 
         // Expose as typed properties for any remaining scene wiring
         public ItemDatabase        ItemDatabase        => itemDatabase;
-        public SkillDatabase       SkillDatabase       => skillDatabase;
+        public LegacySkillDatabase  SkillDatabase       => skillDatabase;
         public QuestDatabase       QuestDatabase       => questDatabase;
         public AchievementDatabase AchievementDatabase => achievementDatabase;
 
@@ -50,7 +50,7 @@ namespace Managers
     /// <summary>[已废弃] 使用 <see cref="RPG.Data.SkillDatabase"/> 替代。</summary>
     [Obsolete("使用 RPG.Data.SkillDatabase 替代。")]
     [CreateAssetMenu(fileName = "LegacySkillDatabase", menuName = "RPG/Databases/[Legacy] Skill Database")]
-    public class SkillDatabase : ScriptableObject
+    public class LegacySkillDatabase : ScriptableObject
     {
         [SerializeField] private RPG.Skills.SkillData[] skills;
 
