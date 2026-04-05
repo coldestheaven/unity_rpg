@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using Framework.Events;
+using Framework.Presentation;
 using Framework.Threading;
 using Gameplay.Player;
 using UI.Controllers;
@@ -53,13 +54,16 @@ namespace RPG.Core
                 Instance = this;
                 DontDestroyOnLoad(gameObject);
 
-                // Ensure MainThreadDispatcher exists on the same persistent object so
-                // the logic thread can safely marshal callbacks back to the main thread.
+                // Ensure MainThreadDispatcher exists for legacy one-off dispatches.
                 if (GetComponent<MainThreadDispatcher>() == null)
                     gameObject.AddComponent<MainThreadDispatcher>();
 
-                // Create and start the logic-layer simulation BEFORE any managers
-                // so that PlayerProgressManager.Start() can bind to it.
+                // PresentationDispatcher drains the Command queue every frame.
+                // Must exist before the simulation starts so no commands are lost.
+                if (GetComponent<PresentationDispatcher>() == null)
+                    gameObject.AddComponent<PresentationDispatcher>();
+
+                // Create and start the logic-layer simulation.
                 _simulation = new GameSimulation(
                     skillSlotCount: 4,
                     maxMana: 100f,
@@ -107,18 +111,21 @@ namespace RPG.Core
         private void InitializeManagers()
         {
             if (stateManager == null)
-            {
                 stateManager = GameStateManager.Instance;
-            }
 
             if (progressManager == null)
-            {
                 progressManager = PlayerProgressManager.Instance;
-            }
 
             if (uiManager == null)
-            {
                 uiManager = UIManager.Instance;
+
+            // Wire the PresentationDispatcher with references to presentation services
+            // so command handlers can update state and fire EventBus notifications.
+            var dispatcher = GetComponent<PresentationDispatcher>();
+            if (dispatcher != null)
+            {
+                dispatcher.Context.ProgressManager = progressManager;
+                dispatcher.Context.UIManager       = uiManager;
             }
 
             isInitialized = true;

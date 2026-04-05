@@ -1,69 +1,61 @@
 using UnityEngine;
 using System;
 using Framework.Events;
-using Framework.Threading;
 using RPG.Simulation;
 
 namespace RPG.Core
 {
     /// <summary>
-    /// 玩家进度数据
+    /// 玩家进度数据快照（主线程侧，仅由 PresentationDispatcher 的 Apply* 方法写入）。
     /// </summary>
     [Serializable]
     public class PlayerProgress
     {
-        public int level = 1;
-        public float experience = 0f;
+        public int   level                 = 1;
+        public float experience            = 0f;
         public float experienceToNextLevel = 100f;
-        public int gold = 0;
+        public int   gold                  = 0;
 
-        public float GetExperienceProgress()
-        {
-            return experience / experienceToNextLevel;
-        }
+        public float GetExperienceProgress() =>
+            experienceToNextLevel > 0f ? experience / experienceToNextLevel : 0f;
 
-        public bool CanLevelUp()
-        {
-            return experience >= experienceToNextLevel;
-        }
+        public bool CanLevelUp() => experience >= experienceToNextLevel;
 
-        public void AddExperience(float amount)
-        {
-            experience += amount;
-        }
+        public void AddExperience(float amount) => experience += amount;
 
         public void LevelUp()
         {
             level++;
-            experience -= experienceToNextLevel;
+            experience            -= experienceToNextLevel;
             experienceToNextLevel *= 1.5f;
         }
 
-        public void AddGold(int amount)
-        {
-            gold += amount;
-        }
+        public void AddGold(int amount) => gold += amount;
     }
 
     /// <summary>
-    /// 玩家进度管理器 — 表现层桥接器
+    /// 玩家进度管理器 — 表现层所有者
     ///
-    /// 职责分离：
-    ///   逻辑层 (<see cref="ProgressSimulation"/>): 运行在后台逻辑线程，执行 XP/等级/金币运算。
-    ///   表现层 (本类, MonoBehaviour): 订阅逻辑层事件，通过 <see cref="MainThreadDispatcher"/>
-    ///     将结果调度回 Unity 主线程，再更新 <see cref="Progress"/> 快照并触发 UI/EventBus 通知。
+    /// 职责分离（Command 模式）：
+    ///   逻辑层 (<see cref="ProgressSimulation"/>): 在后台逻辑线程执行 XP/等级/金币运算，
+    ///     将结果以 <see cref="Framework.Presentation.PresentationCommand"/> 结构体入队到
+    ///     <see cref="Framework.Presentation.PresentationCommandQueue"/>（零 GC）。
     ///
-    /// 调用方直接调用 <see cref="AddExperience"/> / <see cref="AddGold"/>；
-    /// 内部将工作提交给 <see cref="GameSimulation"/> 的逻辑线程，主线程无阻塞等待。
+    ///   表现层 (本类 + <see cref="Framework.Presentation.PresentationDispatcher"/>):
+    ///     Dispatcher 在每帧 Update 中消费命令，调用本类的 Apply* 方法来更新快照、
+    ///     触发 UI 事件和 EventBus 通知。逻辑层不持有任何表现层引用。
+    ///
+    /// 调用方通过 <see cref="AddExperience"/> / <see cref="AddGold"/> 向逻辑线程提交工作；
+    /// 结果由 Dispatcher 在下一帧异步回写，主线程无阻塞等待。
     /// </summary>
     public class PlayerProgressManager : Singleton<PlayerProgressManager>
     {
-        // 主线程只读快照 — 仅在 MainThreadDispatcher 回调中更新，无需加锁
+        // 主线程只读快照 — 仅在 Apply* 方法中写入，无需加锁
         public PlayerProgress Progress { get; private set; }
 
-        public event Action<int> OnLevelUp;
-        public event Action<float> OnExperienceGained;
-        public event Action<int> OnGoldGained;
+        public event Action<int>            OnLevelUp;
+        public event Action<float>          OnExperienceGained;
+        public event Action<int>            OnGoldGained;
         public event Action<PlayerProgress> OnProgressChanged;
 
         protected override void Awake()
@@ -74,84 +66,63 @@ namespace RPG.Core
 
         private void Start()
         {
-            // Bind to the logic simulation if it already exists (started by GameManager.Awake).
-            // If GameSimulation starts after this object, it will call BindToSimulation explicitly.
-            if (GameSimulation.Instance != null)
-                BindToSimulation(GameSimulation.Instance);
+            NotifyProgressChanged();
+        }
 
+        // ── Command handlers (called by PresentationDispatcher on main thread) ──
+
+        /// <summary>
+        /// 应用 XP 变化命令。由 <see cref="Framework.Presentation.PresentationDispatcher"/> 调用。
+        /// </summary>
+        public void ApplyXPGained(float amount, float currentXP, float xpToNext)
+        {
+            Progress.experience            = currentXP;
+            Progress.experienceToNextLevel = xpToNext;
+
+            OnExperienceGained?.Invoke(amount);
+            EventBus.Publish(new PlayerXPGainedEvent(amount, currentXP, xpToNext));
             NotifyProgressChanged();
         }
 
         /// <summary>
-        /// Subscribes to logic-thread events on the given simulation and marshals results
-        /// back to the Unity main thread.  Call once when the simulation is ready.
+        /// 应用升级命令。由 <see cref="Framework.Presentation.PresentationDispatcher"/> 调用。
         /// </summary>
-        public void BindToSimulation(GameSimulation sim)
+        public void ApplyLevelUp(int oldLevel, int newLevel, float xpToNext)
         {
-            if (sim == null) return;
+            Progress.level                 = newLevel;
+            Progress.experienceToNextLevel = xpToNext;
 
-            // XP gained — update snapshot and fire presentation events on main thread
-            sim.Progress.OnXPGained += (amount, currentXP, xpToNext) =>
-            {
-                MainThreadDispatcher.Dispatch(() =>
-                {
-                    Progress.experience = currentXP;
-                    Progress.experienceToNextLevel = xpToNext;
-                    OnExperienceGained?.Invoke(amount);
+            OnLevelUp?.Invoke(newLevel);
+            EventBus.Publish(new PlayerLevelUpEvent(oldLevel, newLevel, xpToNext));
+            Debug.Log($"[PlayerProgressManager] Level up: {oldLevel} → {newLevel}");
+            NotifyProgressChanged();
+        }
 
-                    Framework.Events.EventBus.Publish(new Framework.Events.PlayerXPGainedEvent(amount, currentXP, xpToNext));
+        /// <summary>
+        /// 应用金币变化命令。由 <see cref="Framework.Presentation.PresentationDispatcher"/> 调用。
+        /// </summary>
+        public void ApplyGoldChanged(int newTotal, int delta)
+        {
+            Progress.gold = newTotal;
 
-                    NotifyProgressChanged();
-                });
-            };
-
-            // Level up — update snapshot and fire level-up events on main thread
-            sim.Progress.OnLevelUp += (oldLevel, newLevel, newXPToNext) =>
-            {
-                MainThreadDispatcher.Dispatch(() =>
-                {
-                    Progress.level = newLevel;
-                    Progress.experience = sim.Progress.Experience;
-                    Progress.experienceToNextLevel = newXPToNext;
-
-                    OnLevelUp?.Invoke(newLevel);
-
-                    Framework.Events.EventBus.Publish(new Framework.Events.PlayerLevelUpEvent(oldLevel, newLevel, newXPToNext));
-
-                    Debug.Log($"[PlayerProgressManager] Level up: {oldLevel} → {newLevel}");
-                    NotifyProgressChanged();
-                });
-            };
-
-            // Gold changed — update snapshot and fire gold events on main thread
-            sim.Progress.OnGoldChanged += (newTotal, delta) =>
-            {
-                MainThreadDispatcher.Dispatch(() =>
-                {
-                    Progress.gold = newTotal;
-                    OnGoldGained?.Invoke(delta);
-
-                    Framework.Events.EventBus.Publish(new Framework.Events.GoldChangedEvent(newTotal, delta));
-
-                    NotifyProgressChanged();
-                });
-            };
+            OnGoldGained?.Invoke(delta);
+            EventBus.Publish(new GoldChangedEvent(newTotal, delta));
+            NotifyProgressChanged();
         }
 
         // ── Public API — submissions go to the logic thread ───────────────────
 
-        /// <summary>提交经验值到逻辑线程计算；结果通过主线程回调通知表现层。</summary>
+        /// <summary>提交经验值到逻辑线程；结果经由 PresentationDispatcher 异步回写。</summary>
         public void AddExperience(float amount)
         {
             var sim = GameSimulation.Instance;
             if (sim != null)
             {
-                // Non-blocking: enqueue to logic thread
                 sim.EnqueueWork(() => sim.Progress.AddExperience(amount));
             }
             else
             {
-                // Fallback: direct computation on main thread (no simulation running)
+                // 降级：无逻辑线程时在主线程直接计算
                 Progress.AddExperience(amount);
                 OnExperienceGained?.Invoke(amount);
 
@@ -160,14 +131,15 @@ namespace RPG.Core
                     int old = Progress.level;
                     Progress.LevelUp();
                     OnLevelUp?.Invoke(Progress.level);
-                    Framework.Events.EventBus.Publish(new Framework.Events.PlayerLevelUpEvent(old, Progress.level, Progress.experienceToNextLevel));
+                    EventBus.Publish(new PlayerLevelUpEvent(old, Progress.level,
+                        Progress.experienceToNextLevel));
                 }
 
                 NotifyProgressChanged();
             }
         }
 
-        /// <summary>提交金币增量到逻辑线程计算；结果通过主线程回调通知表现层。</summary>
+        /// <summary>提交金币增量到逻辑线程；结果经由 PresentationDispatcher 异步回写。</summary>
         public void AddGold(int amount)
         {
             var sim = GameSimulation.Instance;
@@ -179,19 +151,17 @@ namespace RPG.Core
             {
                 Progress.AddGold(amount);
                 OnGoldGained?.Invoke(amount);
-
-                Framework.Events.EventBus.Publish(new Framework.Events.GoldChangedEvent(Progress.gold, amount));
-
+                EventBus.Publish(new GoldChangedEvent(Progress.gold, amount));
                 NotifyProgressChanged();
             }
         }
 
-        // ── Read accessors (read from the main-thread snapshot) ───────────────
+        // ── Read accessors (main-thread snapshot) ─────────────────────────────
 
-        public int GetLevel() => Progress.level;
-        public float GetExperience() => Progress.experience;
+        public int   GetLevel()                => Progress.level;
+        public float GetExperience()           => Progress.experience;
         public float GetExperienceToNextLevel() => Progress.experienceToNextLevel;
-        public int GetGold() => Progress.gold;
+        public int   GetGold()                 => Progress.gold;
 
         /// <summary>重置进度（同步到逻辑层和本地快照）。</summary>
         public void ResetProgress()
@@ -205,5 +175,4 @@ namespace RPG.Core
 
         public void SaveProgress() => SaveSystem.Instance?.SaveGame();
     }
-
 }
