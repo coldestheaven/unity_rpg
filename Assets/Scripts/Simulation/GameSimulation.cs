@@ -9,8 +9,8 @@ namespace RPG.Simulation
     /// Root coordinator for the logic layer.
     ///
     /// Owns and manages the lifecycle of the background <see cref="LogicThread"/> and all
-    /// simulation sub-systems.  It self-perpetuates a tick loop at ~<see cref="TargetTickHz"/>
-    /// to drive time-based simulations (cooldowns, regen, AI timers, etc.).
+    /// simulation sub-systems.  It self-perpetuates a tick loop at <see cref="TargetTickHz"/>
+    /// (default 30 Hz, configurable at runtime via <see cref="SetTickRate"/>).
     ///
     /// Lifetime:
     ///   Created by <c>GameManager.Awake()</c> → started immediately → disposed in
@@ -27,6 +27,7 @@ namespace RPG.Simulation
     /// Usage:
     ///   GameSimulation.Instance.Progress.AddExperience(50f);   // fires on logic thread
     ///   GameSimulation.Instance.EnqueueWork(() => { ... });    // custom logic-thread work
+    ///   GameSimulation.Instance.SetTickRate(60);               // change Hz at runtime
     /// </summary>
     public sealed class GameSimulation : IDisposable
     {
@@ -44,13 +45,29 @@ namespace RPG.Simulation
         private long _lastTickMs;
         private volatile bool _ticking;
 
-        // ── Configuration ─────────────────────────────────────────────────────
-        private const int TargetTickHz = 60;
-        private const int TargetTickMs = 1000 / TargetTickHz; // ~16 ms
+        // ── Tick-rate configuration ───────────────────────────────────────────
+        // Stored as target interval in milliseconds; volatile so Tick() always
+        // reads the latest value without locking.
+        private volatile int _targetIntervalMs;
+
+        /// <summary>Current logic thread tick rate in Hz (read-only snapshot).</summary>
+        public int TargetTickHz => _targetIntervalMs > 0 ? 1000 / _targetIntervalMs : 0;
+
+        /// <summary>Allowed Hz range for <see cref="SetTickRate"/>.</summary>
+        public const int MinTickHz = 1;
+        public const int MaxTickHz = 120;
 
         // ─────────────────────────────────────────────────────────────────────
 
-        public GameSimulation(int skillSlotCount = 4, float maxMana = 100f)
+        /// <param name="skillSlotCount">Number of skill hotbar slots.</param>
+        /// <param name="maxMana">Player maximum mana.</param>
+        /// <param name="tickRateHz">
+        ///   Target logic-thread tick rate in Hz.  Lower values reduce CPU overhead;
+        ///   higher values improve responsiveness of cooldown timers and DoT ticks.
+        ///   Default: 30 Hz (33 ms interval). Clamped to [<see cref="MinTickHz"/>,
+        ///   <see cref="MaxTickHz"/>].
+        /// </param>
+        public GameSimulation(int skillSlotCount = 4, float maxMana = 100f, int tickRateHz = 30)
         {
             if (Instance != null)
                 UnityEngine.Debug.LogWarning(
@@ -62,7 +79,20 @@ namespace RPG.Simulation
             _logicThread = new LogicThread("GameLogicThread");
             _clock = Stopwatch.StartNew();
 
+            SetTickRate(tickRateHz);
             Instance = this;
+        }
+
+        /// <summary>
+        /// Changes the logic-thread tick rate at runtime.  Thread-safe.
+        /// Takes effect on the next tick cycle (within one current-interval window).
+        /// </summary>
+        /// <param name="hz">Target rate in Hz, clamped to [<see cref="MinTickHz"/>, <see cref="MaxTickHz"/>].</param>
+        public void SetTickRate(int hz)
+        {
+            int clamped = Math.Max(MinTickHz, Math.Min(MaxTickHz, hz));
+            _targetIntervalMs = 1000 / clamped;
+            UnityEngine.Debug.Log($"[GameSimulation] Tick rate set to {clamped} Hz ({_targetIntervalMs} ms/tick).");
         }
 
         /// <summary>
@@ -103,8 +133,9 @@ namespace RPG.Simulation
             // Progress has no time-based updates; mutations are event-driven.
 
             // ── Pace the tick rate ────────────────────────────────────────────
+            // Read _targetIntervalMs once — volatile guarantees a fresh value.
             long elapsed = _clock.ElapsedMilliseconds - nowMs;
-            int sleepMs = Math.Max(0, TargetTickMs - (int)elapsed);
+            int sleepMs = Math.Max(0, _targetIntervalMs - (int)elapsed);
             if (sleepMs > 0)
                 System.Threading.Thread.Sleep(sleepMs);
 

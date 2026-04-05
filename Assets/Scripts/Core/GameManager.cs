@@ -25,6 +25,11 @@ namespace RPG.Core
         public float baseEnemySpawnRate = 5f;
         public int baseEnemyDamage = 10;
 
+        [Header("逻辑线程")]
+        [Tooltip("逻辑线程 Tick 频率（Hz）。30 = 低开销，60 = 更流畅的冷却/DoT 计时，上限 120。")]
+        [Range(GameSimulation.MinTickHz, GameSimulation.MaxTickHz)]
+        public int logicTickRateHz = 30;
+
         // 兼容旧接口的属性(内部使用新的管理器)
         public int playerHealth => PlayerController.Instance != null ? Mathf.RoundToInt(PlayerController.Instance.Health.CurrentHealth) : 0;
         public int playerMaxHealth => PlayerController.Instance != null ? Mathf.RoundToInt(PlayerController.Instance.Health.MaxHealth) : 0;
@@ -54,7 +59,10 @@ namespace RPG.Core
 
                 // Create and start the logic-layer simulation BEFORE any managers
                 // so that PlayerProgressManager.Start() can bind to it.
-                _simulation = new GameSimulation(skillSlotCount: 4, maxMana: 100f);
+                _simulation = new GameSimulation(
+                    skillSlotCount: 4,
+                    maxMana: 100f,
+                    tickRateHz: logicTickRateHz);
                 _simulation.Start();
 
                 InitializeManagers();
