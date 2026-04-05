@@ -1,4 +1,5 @@
 using RPG.Core;
+using RPG.Skills;
 using UI.Controllers;
 
 namespace Framework.Presentation
@@ -14,5 +15,6 @@ namespace Framework.Presentation
     {
         public PlayerProgressManager ProgressManager { get; set; }
         public UIManager             UIManager       { get; set; }
+        public SkillController       SkillController { get; set; }
     }
 }

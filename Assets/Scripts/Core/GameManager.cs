@@ -119,13 +119,13 @@ namespace RPG.Core
             if (uiManager == null)
                 uiManager = UIManager.Instance;
 
-            // Wire the PresentationDispatcher with references to presentation services
-            // so command handlers can update state and fire EventBus notifications.
+            // Wire the PresentationDispatcher with references to all presentation services.
             var dispatcher = GetComponent<PresentationDispatcher>();
             if (dispatcher != null)
             {
                 dispatcher.Context.ProgressManager = progressManager;
                 dispatcher.Context.UIManager       = uiManager;
+                dispatcher.Context.SkillController = FindObjectOfType<RPG.Skills.SkillController>();
             }
 
             isInitialized = true;

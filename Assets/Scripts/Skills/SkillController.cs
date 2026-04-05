@@ -140,7 +140,6 @@ namespace RPG.Skills
         {
             playerTransform = transform;
             animator = GetComponent<Animator>();
-            BindToSimulation();
         }
 
         /// <summary>
@@ -175,28 +174,27 @@ namespace RPG.Skills
             HandleSkillInput();
         }
 
-        /// <summary>
-        /// Subscribe to the logic-thread simulation so cooldown state stays in sync
-        /// with the background tick without polling in Update().
-        /// </summary>
-        private void BindToSimulation()
-        {
-            var sim = GameSimulation.Instance;
-            if (sim == null) return;
+        // ── Presentation command handlers (called by PresentationDispatcher) ──
 
-            // Resize the simulation slot count to match the inspector configuration.
-            // (SkillCooldownSimulation is constructed with the configured slot count
-            //  in GameManager, so this is just a safety check.)
-            sim.Skills.OnCooldownChanged += (slot, remaining) =>
-            {
-                // Sync back to SkillInstance so existing UI code reading
-                // skillInstance.RemainingCooldown still works correctly.
-                Framework.Threading.MainThreadDispatcher.Dispatch(() =>
-                {
-                    if (slot >= 0 && slot < skillInstances.Length)
-                        skillInstances[slot]?.SyncCooldown(remaining);
-                });
-            };
+        /// <summary>
+        /// Applies a cooldown update received from the logic thread via
+        /// <see cref="Framework.Presentation.PresentationDispatcher"/>.
+        /// Syncs the authoritative remaining time into the local <see cref="SkillInstance"/>
+        /// so existing UI code reading <c>RemainingCooldown</c> remains correct.
+        /// </summary>
+        public void ApplyCooldownChanged(int slot, float remaining)
+        {
+            if (slot >= 0 && slot < skillInstances?.Length)
+                skillInstances[slot]?.SyncCooldown(remaining);
+        }
+
+        /// <summary>
+        /// Applies a mana update received from the logic thread via
+        /// <see cref="Framework.Presentation.PresentationDispatcher"/>.
+        /// </summary>
+        public void ApplyManaChanged(float current, float max)
+        {
+            currentMana = Mathf.RoundToInt(current);
         }
 
         private void InitializeSkills()
@@ -215,9 +213,8 @@ namespace RPG.Skills
         private void UpdateCooldowns()
         {
             // When the logic-thread simulation is running, cooldowns are ticked there
-            // at ~60 Hz and synced back to SkillInstance via MainThreadDispatcher.
-            // Fall back to main-thread ticking only when no simulation is available
-            // (e.g. during editor tests or before GameManager initialises).
+            // and synced back via PresentationDispatcher → ApplyCooldownChanged.
+            // Fall back to main-thread ticking only when no simulation is available.
             if (GameSimulation.Instance != null) return;
 
             float deltaTime = Time.deltaTime;

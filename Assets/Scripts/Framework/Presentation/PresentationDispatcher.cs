@@ -6,14 +6,16 @@ namespace Framework.Presentation
     /// Drains <see cref="PresentationCommandQueue"/> every frame and routes each command
     /// to the correct presentation-layer handler.
     ///
-    /// Threading contract:
-    ///   Logic thread  →  PresentationCommandQueue.Enqueue(cmd)  (lock-free)
-    ///   Main thread   ←  Update() dequeues and dispatches       (Unity thread only)
+    /// Threading contract (complete logic/presentation separation):
+    ///   Logic thread  →  PresentationCommandQueue.Enqueue(cmd)  (lock-free, zero GC)
+    ///   Main thread   ←  Update() dequeues and dispatches        (Unity thread only)
+    ///
+    /// The logic layer holds no references to MonoBehaviours or Unity APIs.
+    /// The presentation layer holds no references to simulation internals.
     ///
     /// Placement:
-    ///   Attach to the same DontDestroyOnLoad GameObject as GameManager.
-    ///   Populate <see cref="Context"/> before the first frame via
-    ///   <c>PresentationDispatcher.Context.ProgressManager = ...</c>.
+    ///   Attach to the same DontDestroyOnLoad GameObject as GameManager (done in Awake).
+    ///   Populate <see cref="Context"/> before the first frame — see GameManager.InitializeManagers().
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class PresentationDispatcher : MonoBehaviour
@@ -42,6 +44,7 @@ namespace Framework.Presentation
         {
             switch (cmd.Id)
             {
+                // ── Progress ──────────────────────────────────────────────────
                 case PresCommandId.XPGained:
                     Context.ProgressManager?.ApplyXPGained(cmd.F0, cmd.F1, cmd.F2);
                     break;
@@ -56,15 +59,42 @@ namespace Framework.Presentation
                     Context.ProgressManager?.ApplyGoldChanged(cmd.I0, cmd.I1);
                     break;
 
-                // Health commands: currently handled in-entity via HealthSimulation
-                // events.  These slots are reserved for future migration.
+                // ── Health (per-entity) ────────────────────────────────────────
                 case PresCommandId.DamageResolved:
-                case PresCommandId.Healed:
-                case PresCommandId.EntityDied:
-                case PresCommandId.DoTTick:
+                    // I0=entityId, F0=finalDamage, F1=remainingHP,
+                    // F2/F3/F4=sourcePos, I1=damageType, I2=hitKind
+                    if (EntityPresentRegistry.TryGet(cmd.I0, out var damagedEntity))
+                        damagedEntity.ApplyDamageResolved(cmd.F0, cmd.F1,
+                            cmd.F2, cmd.F3, cmd.F4, cmd.I1, cmd.I2);
                     break;
 
+                case PresCommandId.Healed:
+                    // I0=entityId, F0=amount, F1=newHP
+                    if (EntityPresentRegistry.TryGet(cmd.I0, out var healedEntity))
+                        healedEntity.ApplyHealed(cmd.F0, cmd.F1);
+                    break;
+
+                case PresCommandId.EntityDied:
+                    // I0=entityId, F0=killingDamage
+                    if (EntityPresentRegistry.TryGet(cmd.I0, out var deadEntity))
+                        deadEntity.ApplyEntityDied(cmd.F0);
+                    break;
+
+                case PresCommandId.DoTTick:
+                    // I0=entityId, I1=remainingTicks, F0=tickDamage
+                    if (EntityPresentRegistry.TryGet(cmd.I0, out var dotEntity))
+                        dotEntity.ApplyDoTTick(cmd.F0, cmd.I1);
+                    break;
+
+                // ── Skills ────────────────────────────────────────────────────
                 case PresCommandId.SkillCooldownChanged:
+                    // I0=slotIndex, F0=remainingSeconds
+                    Context.SkillController?.ApplyCooldownChanged(cmd.I0, cmd.F0);
+                    break;
+
+                case PresCommandId.ManaChanged:
+                    // F0=currentMana, F1=maxMana
+                    Context.SkillController?.ApplyManaChanged(cmd.F0, cmd.F1);
                     break;
 
                 default:
