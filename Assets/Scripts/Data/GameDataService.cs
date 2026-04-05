@@ -72,6 +72,9 @@ namespace RPG.Data
 
         // ── 数据库引用 ────────────────────────────────────────────────────────
 
+        [Header("玩家")]
+        [SerializeField] private PlayerData            _playerData;
+
         [Header("物品 / 技能 / 敌人")]
         [SerializeField] private ItemDatabase          _itemDatabase;
         [SerializeField] private SkillDatabase         _skillDatabase;
@@ -85,6 +88,9 @@ namespace RPG.Data
         [SerializeField] private AchievementDatabase   _achievementDatabase;
 
         // ── 类型安全访问接口 ──────────────────────────────────────────────────
+
+        /// <summary>当前角色的玩家数据配置。</summary>
+        public PlayerData                     Player       => _playerData;
 
         public IRepository<ItemData>          Items        => EnsureInit(_itemDatabase);
         public IRepository<SkillData>         Skills       => EnsureInit(_skillDatabase);
