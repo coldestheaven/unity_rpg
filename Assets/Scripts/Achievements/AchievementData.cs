@@ -122,12 +122,10 @@ namespace RPG.Achievements
 
         private bool CheckCompleteQuest(object[] args)
         {
-            if (args == null || args.Length == 0 || !(args[0] is RPG.Quests.QuestEventArgs questArgs))
-            {
+            if (args == null || args.Length == 0 || !(args[0] is string questId))
                 return false;
-            }
 
-            return questArgs.questId == targetId;
+            return questId == targetId;
         }
 
         private bool CheckPlayTime(object[] args)
@@ -249,11 +247,10 @@ namespace RPG.Achievements
             Data.Unlock();
             OnAchievementUnlocked?.Invoke(this);
 
-            EventManager.Instance?.TriggerEvent("AchievementUnlocked", new AchievementEventArgs
+            Framework.Events.EventBus.Publish(new Framework.Events.AchievementUnlockedEvent
             {
-                achievementId = Data.achievementId,
-                achievementName = Data.achievementName,
-                achievementType = Data.achievementType
+                AchievementId   = Data.achievementId,
+                AchievementName = Data.achievementName
             });
         }
 
@@ -270,11 +267,9 @@ namespace RPG.Achievements
             Data.ClaimRewards();
             GiveRewards();
 
-            EventManager.Instance?.TriggerEvent("AchievementRewardsClaimed", new AchievementEventArgs
+            Framework.Events.EventBus.Publish(new Framework.Events.AchievementRewardsClaimedEvent
             {
-                achievementId = Data.achievementId,
-                achievementName = Data.achievementName,
-                achievementType = Data.achievementType
+                AchievementId = Data.achievementId
             });
 
             return true;
@@ -347,11 +342,4 @@ namespace RPG.Achievements
         public DateTime? claimTime;
     }
 
-    [System.Serializable]
-    public class AchievementEventArgs
-    {
-        public string achievementId;
-        public string achievementName;
-        public AchievementType achievementType;
-    }
 }

@@ -2,6 +2,7 @@ using UnityEngine;
 using System;
 using System.Collections.Generic;
 using RPG.Core;
+using Framework.Events;
 
 namespace RPG.Achievements
 {
@@ -57,25 +58,18 @@ namespace RPG.Achievements
 
         private void SubscribeToEvents()
         {
-            // 订阅游戏事件以自动检查成就
-            if (EventManager.Instance != null)
-            {
-                EventManager.Instance.AddListener("PlayerLevelUp", OnPlayerLevelUp);
-                EventManager.Instance.AddListener("QuestCompleted", OnQuestCompleted);
-                EventManager.Instance.AddListener("GoldChanged", OnGoldChanged);
-                EventManager.Instance.AddListener("GameStarted", OnGameStarted);
-            }
+            EventBus.Subscribe<PlayerLevelUpEvent>(OnPlayerLevelUp);
+            EventBus.Subscribe<QuestCompletedEvent>(OnQuestCompleted);
+            EventBus.Subscribe<GoldChangedEvent>(OnGoldChanged);
+            EventBus.Subscribe<GameStartedEvent>(OnGameStarted);
         }
 
         private void UnsubscribeFromEvents()
         {
-            if (EventManager.Instance != null)
-            {
-                EventManager.Instance.RemoveListener("PlayerLevelUp", OnPlayerLevelUp);
-                EventManager.Instance.RemoveListener("QuestCompleted", OnQuestCompleted);
-                EventManager.Instance.RemoveListener("GoldChanged", OnGoldChanged);
-                EventManager.Instance.RemoveListener("GameStarted", OnGameStarted);
-            }
+            EventBus.Unsubscribe<PlayerLevelUpEvent>(OnPlayerLevelUp);
+            EventBus.Unsubscribe<QuestCompletedEvent>(OnQuestCompleted);
+            EventBus.Unsubscribe<GoldChangedEvent>(OnGoldChanged);
+            EventBus.Unsubscribe<GameStartedEvent>(OnGameStarted);
         }
 
         #region Achievement Management
@@ -215,31 +209,22 @@ namespace RPG.Achievements
 
         #region Event Handlers
 
-        private void OnPlayerLevelUp(object[] args)
+        private void OnPlayerLevelUp(PlayerLevelUpEvent e)
         {
-            int level = 1;
-            if (args != null && args.Length > 0 && args[0] is RPG.Core.LevelUpEventArgs levelArgs)
-            {
-                level = levelArgs.level;
-            }
-
-            CheckAchievements(AchievementConditionType.ReachLevel, new object[] { level });
+            CheckAchievements(AchievementConditionType.ReachLevel, new object[] { e.NewLevel });
         }
 
-        private void OnQuestCompleted(object[] args)
+        private void OnQuestCompleted(QuestCompletedEvent e)
         {
-            CheckAchievements(AchievementConditionType.CompleteQuest, args);
+            CheckAchievements(AchievementConditionType.CompleteQuest, new object[] { e.QuestId });
         }
 
-        private void OnGoldChanged(object[] args)
+        private void OnGoldChanged(GoldChangedEvent e)
         {
-            if (args != null && args.Length > 0 && args[0] is RPG.Items.GoldEventArgs goldArgs)
-            {
-                CheckAchievements(AchievementConditionType.GoldAmount, new object[] { (int)goldArgs.currentGold });
-            }
+            CheckAchievements(AchievementConditionType.GoldAmount, new object[] { e.CurrentGold });
         }
 
-        private void OnGameStarted(object[] args)
+        private void OnGameStarted(GameStartedEvent _)
         {
             // 记录游戏开始时间,用于游戏时长成就
         }

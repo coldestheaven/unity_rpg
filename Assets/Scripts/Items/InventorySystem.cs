@@ -284,11 +284,10 @@ namespace RPG.Items
         {
             gold += amount;
             OnGoldChanged?.Invoke(gold);
-
-            EventManager.Instance?.TriggerEvent("GoldChanged", new GoldEventArgs
+            Framework.Events.EventBus.Publish(new Framework.Events.GoldChangedEvent
             {
-                currentGold = gold,
-                changeAmount = amount
+                CurrentGold = (int)gold,
+                Delta       = (int)amount
             });
         }
 
@@ -301,11 +300,10 @@ namespace RPG.Items
 
             gold -= amount;
             OnGoldChanged?.Invoke(gold);
-
-            EventManager.Instance?.TriggerEvent("GoldChanged", new GoldEventArgs
+            Framework.Events.EventBus.Publish(new Framework.Events.GoldChangedEvent
             {
-                currentGold = gold,
-                changeAmount = -amount
+                CurrentGold = (int)gold,
+                Delta       = -(int)amount
             });
 
             return true;
@@ -368,34 +366,4 @@ namespace RPG.Items
         }
     }
 
-    /// <summary>
-    /// 金币变更事件参数
-    /// </summary>
-    [System.Serializable]
-    public class GoldEventArgs
-    {
-        public float currentGold;
-        public float changeAmount;
-    }
-
-    /// <summary>
-    /// 物品使用事件参数
-    /// </summary>
-    [System.Serializable]
-    public class ItemUsedEventArgs
-    {
-        public string itemName;
-        public ItemType itemType;
-        public int value;
-    }
-
-    /// <summary>
-    /// 任务物品事件参数
-    /// </summary>
-    [System.Serializable]
-    public class QuestItemEventArgs
-    {
-        public string itemName;
-        public string questId;
-    }
 }

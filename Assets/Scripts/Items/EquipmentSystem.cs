@@ -70,11 +70,11 @@ namespace RPG.Items
             OnEquipmentChanged?.Invoke(slot, equipment);
             NotifyModifiersChanged();
 
-            EventManager.Instance?.TriggerEvent("ItemEquipped", new EquipmentEventArgs
+            Framework.Events.EventBus.Publish(new Framework.Events.ItemEquippedEvent
             {
-                itemData = equipment,
-                slot = slot,
-                isEquipped = true
+                ItemId    = equipment.name,
+                SlotName  = slot.ToString(),
+                IsEquipped = true
             });
 
             Debug.Log($"Equipped {equipment.itemName} to {slot}");
@@ -102,11 +102,11 @@ namespace RPG.Items
             OnEquipmentUnequipped?.Invoke(slot);
             NotifyModifiersChanged();
 
-            EventManager.Instance?.TriggerEvent("ItemEquipped", new EquipmentEventArgs
+            Framework.Events.EventBus.Publish(new Framework.Events.ItemEquippedEvent
             {
-                itemData = item,
-                slot = slot,
-                isEquipped = false
+                ItemId    = item.name,
+                SlotName  = slot.ToString(),
+                IsEquipped = false
             });
 
             Debug.Log($"Unequipped item from {slot}");
@@ -145,11 +145,11 @@ namespace RPG.Items
             OnEquipmentChanged?.Invoke(slot, fromInventory);
             NotifyModifiersChanged();
 
-            EventManager.Instance?.TriggerEvent("ItemEquipped", new EquipmentEventArgs
+            Framework.Events.EventBus.Publish(new Framework.Events.ItemEquippedEvent
             {
-                itemData = fromInventory,
-                slot = slot,
-                isEquipped = true
+                ItemId    = fromInventory.name,
+                SlotName  = slot.ToString(),
+                IsEquipped = true
             });
 
             return true;
@@ -255,14 +255,4 @@ namespace RPG.Items
         public float moveSpeed;
     }
 
-    /// <summary>
-    /// 装备事件参数
-    /// </summary>
-    [System.Serializable]
-    public class EquipmentEventArgs
-    {
-        public EquipmentData itemData;
-        public EquipmentSlot slot;
-        public bool isEquipped;
-    }
 }

@@ -194,17 +194,9 @@ namespace RPG.Items
 
         private void OnPickupSuccess(GameObject player)
         {
-            EventManager.Instance?.TriggerEvent("ItemPickedUp", new ItemPickupEventArgs
-            {
-                itemName = itemData?.itemName,
-                itemType = itemData?.itemType ?? ItemType.Consumable,
-                quantity = quantity,
-                position = transform.position
-            });
-
             Framework.Events.EventBus.Publish(new Framework.Events.ItemPickedUpEvent
             {
-                ItemId = itemData?.name,
+                ItemId   = itemData?.name,
                 ItemName = itemData?.itemName,
                 Quantity = quantity,
                 Position = transform.position
@@ -217,10 +209,11 @@ namespace RPG.Items
         {
             Debug.LogWarning($"Failed to pickup {itemData?.itemName}: {result}");
 
-            EventManager.Instance?.TriggerEvent("ItemPickupFailed", new ItemPickupFailedEventArgs
+            Framework.Events.EventBus.Publish(new Framework.Events.ItemPickupFailedEvent
             {
-                itemName = itemData?.itemName,
-                result = result
+                ItemId   = itemData?.name,
+                ItemName = itemData?.itemName,
+                Reason   = result.ToString()
             });
         }
 
@@ -251,25 +244,4 @@ namespace RPG.Items
         }
     }
 
-    /// <summary>
-    /// 物品拾取事件参数
-    /// </summary>
-    [System.Serializable]
-    public class ItemPickupEventArgs
-    {
-        public string itemName;
-        public ItemType itemType;
-        public int quantity;
-        public Vector3 position;
-    }
-
-    /// <summary>
-    /// 物品拾取失败事件参数
-    /// </summary>
-    [System.Serializable]
-    public class ItemPickupFailedEventArgs
-    {
-        public string itemName;
-        public InventoryOperationResult result;
-    }
 }

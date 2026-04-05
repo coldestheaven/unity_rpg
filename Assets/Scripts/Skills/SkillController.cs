@@ -300,16 +300,10 @@ namespace RPG.Skills
 
             Framework.Events.EventBus.Publish(new Framework.Events.SkillUsedEvent
             {
+                SkillId   = skillInstance.SkillData.name,
                 SkillName = skillInstance.SkillData.skillName,
                 SlotIndex = slotIndex,
-                Level = skillInstance.Level
-            });
-
-            EventManager.Instance?.TriggerEvent("SkillUsed", new SkillUsedEventArgs
-            {
-                skillName = skillInstance.SkillData.skillName,
-                slotIndex = slotIndex,
-                level = skillInstance.Level
+                Level     = skillInstance.Level
             });
 
             return true;
@@ -406,12 +400,13 @@ namespace RPG.Skills
             // 终极技能可能需要特殊处理
             ExecuteActiveSkill(skillData, skillLevel);
 
-            // 触发终极技能事件
-            EventManager.Instance?.TriggerEvent("UltimateSkillUsed", new SkillUsedEventArgs
+            Framework.Events.EventBus.Publish(new Framework.Events.SkillUsedEvent
             {
-                skillName = skillData.skillName,
-                slotIndex = -1,
-                level = 1
+                SkillId    = skillData.name,
+                SkillName  = skillData.skillName,
+                SlotIndex  = -1,
+                Level      = 1,
+                IsUltimate = true
             });
         }
 
@@ -550,11 +545,4 @@ namespace RPG.Skills
         }
     }
 
-    [System.Serializable]
-    public class SkillUsedEventArgs
-    {
-        public string skillName;
-        public int slotIndex;
-        public int level;
-    }
 }

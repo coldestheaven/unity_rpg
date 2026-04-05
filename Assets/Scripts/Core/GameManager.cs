@@ -127,20 +127,14 @@ namespace RPG.Core
 
         private void SubscribeToEvents()
         {
-            if (EventManager.Instance != null)
-            {
-                EventManager.Instance.AddListener("PlayerDied", OnPlayerDied);
-                EventManager.Instance.AddListener("GameVictory", OnGameVictory);
-            }
+            EventBus.Subscribe<PlayerDiedEvent>(OnPlayerDied);
+            EventBus.Subscribe<GameVictoryEvent>(OnGameVictory);
         }
 
         private void UnsubscribeFromEvents()
         {
-            if (EventManager.Instance != null)
-            {
-                EventManager.Instance.RemoveListener("PlayerDied", OnPlayerDied);
-                EventManager.Instance.RemoveListener("GameVictory", OnGameVictory);
-            }
+            EventBus.Unsubscribe<PlayerDiedEvent>(OnPlayerDied);
+            EventBus.Unsubscribe<GameVictoryEvent>(OnGameVictory);
         }
 
         #endregion
@@ -289,18 +283,9 @@ namespace RPG.Core
 
         #region Event Handlers
 
-        private void OnPlayerDied(object args)
-        {
-            GameOver();
-        }
+        private void OnPlayerDied(PlayerDiedEvent _) => GameOver();
 
-        private void OnGameVictory(object args)
-        {
-            if (stateManager != null)
-            {
-                stateManager.Victory();
-            }
-        }
+        private void OnGameVictory(GameVictoryEvent _) => stateManager?.Victory();
 
         #endregion
 

@@ -157,11 +157,10 @@ namespace RPG.Items
                 float totalHeal = healAmount + (health.MaxHealth * healPercentage);
                 health.Heal(totalHeal);
 
-                EventManager.Instance?.TriggerEvent("ItemUsed", new ItemUsedEventArgs
+                Framework.Events.EventBus.Publish(new Framework.Events.ItemUsedEvent
                 {
-                    itemName = itemName,
-                    itemType = itemType,
-                    value = Mathf.RoundToInt(totalHeal)
+                    ItemId   = name,
+                    ItemName = itemName
                 });
             }
         }
@@ -189,11 +188,10 @@ namespace RPG.Items
                     buffMoveSpeed),
                 buffDuration);
 
-            EventManager.Instance?.TriggerEvent("ItemUsed", new ItemUsedEventArgs
+            Framework.Events.EventBus.Publish(new Framework.Events.ItemUsedEvent
             {
-                itemName = itemName,
-                itemType = itemType,
-                value = Mathf.RoundToInt(buffDuration)
+                ItemId   = name,
+                ItemName = itemName
             });
         }
     }
@@ -301,10 +299,10 @@ namespace RPG.Items
         public override void OnPickup(GameObject player)
         {
             base.OnPickup(player);
-            EventManager.Instance?.TriggerEvent("QuestItemCollected", new QuestItemEventArgs
+            Framework.Events.EventBus.Publish(new Framework.Events.QuestItemCollectedEvent
             {
-                itemName = itemName,
-                questId = questId
+                ItemId  = name,
+                QuestId = questId
             });
         }
     }

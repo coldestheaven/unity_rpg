@@ -99,13 +99,6 @@ namespace RPG.Core
                     Progress.experienceToNextLevel = xpToNext;
                     OnExperienceGained?.Invoke(amount);
 
-                    EventManager.Instance?.TriggerEvent("ExperienceGained", new ExperienceEventArgs
-                    {
-                        amount = amount,
-                        currentExperience = currentXP,
-                        experienceToNextLevel = xpToNext
-                    });
-
                     Framework.Events.EventBus.Publish(new Framework.Events.PlayerXPGainedEvent
                     {
                         Amount = amount,
@@ -128,13 +121,6 @@ namespace RPG.Core
 
                     OnLevelUp?.Invoke(newLevel);
 
-                    EventManager.Instance?.TriggerEvent("PlayerLevelUp", new LevelUpEventArgs
-                    {
-                        level = newLevel,
-                        currentExperience = Progress.experience,
-                        experienceToNextLevel = newXPToNext
-                    });
-
                     Framework.Events.EventBus.Publish(new Framework.Events.PlayerLevelUpEvent
                     {
                         OldLevel = oldLevel,
@@ -154,12 +140,6 @@ namespace RPG.Core
                 {
                     Progress.gold = newTotal;
                     OnGoldGained?.Invoke(delta);
-
-                    EventManager.Instance?.TriggerEvent("GoldGained", new GoldEventArgs
-                    {
-                        currentGold = newTotal,
-                        changeAmount = delta
-                    });
 
                     Framework.Events.EventBus.Publish(new Framework.Events.GoldChangedEvent
                     {
@@ -249,26 +229,4 @@ namespace RPG.Core
         public void SaveProgress() => SaveSystem.Instance?.SaveGame();
     }
 
-    [Serializable]
-    public class ExperienceEventArgs
-    {
-        public float amount;
-        public float currentExperience;
-        public float experienceToNextLevel;
-    }
-
-    [Serializable]
-    public class LevelUpEventArgs
-    {
-        public int level;
-        public float currentExperience;
-        public float experienceToNextLevel;
-    }
-
-    [Serializable]
-    public class GoldEventArgs
-    {
-        public int currentGold;
-        public int changeAmount;
-    }
 }

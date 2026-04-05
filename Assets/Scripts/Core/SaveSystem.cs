@@ -113,10 +113,9 @@ namespace RPG.Core
                 currentSaveData = data;
                 RefreshSaveSlots();
 
-                EventManager.Instance?.TriggerEvent("GameSaved", new SaveEventArgs
+                Framework.Events.EventBus.Publish(new Framework.Events.GameSavedEvent
                 {
-                    saveName = saveName,
-                    filePath = saveFilePath
+                    SaveTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
                 });
 
                 Debug.Log($"Game saved to: {saveFilePath}");
@@ -208,11 +207,7 @@ namespace RPG.Core
                 ApplySaveData(data);
                 currentSaveData = data;
 
-                EventManager.Instance?.TriggerEvent("GameLoaded", new SaveEventArgs
-                {
-                    saveName = saveName,
-                    filePath = saveFilePath
-                });
+                Framework.Events.EventBus.Publish(new Framework.Events.GameLoadedEvent());
 
                 Debug.Log($"Game loaded from: {saveFilePath}");
             }
@@ -287,11 +282,7 @@ namespace RPG.Core
                     File.Delete(saveFilePath);
                     RefreshSaveSlots();
 
-                    EventManager.Instance?.TriggerEvent("SaveDeleted", new SaveEventArgs
-                    {
-                        saveName = saveName,
-                        filePath = saveFilePath
-                    });
+                    Framework.Events.EventBus.Publish(new Framework.Events.SaveDeletedEvent());
 
                     Debug.Log($"Save deleted: {saveName}");
                 }
@@ -358,10 +349,4 @@ namespace RPG.Core
         #endregion
     }
 
-    [Serializable]
-    public class SaveEventArgs
-    {
-        public string saveName;
-        public string filePath;
-    }
 }

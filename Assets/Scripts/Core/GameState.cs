@@ -44,11 +44,7 @@ namespace RPG.Core
             OnStateChanged?.Invoke(newState);
             OnStateTransition?.Invoke(old, newState);
 
-            EventManager.Instance?.TriggerEvent("GameStateChanged", new GameStateChangedEventArgs
-            {
-                oldState = old,
-                newState = newState
-            });
+            EventBus.Publish(new GameStateChangedEvent { OldState = old.ToString(), NewState = newState.ToString() });
 
             Debug.Log($"[GameState] {old} → {newState}");
         }
@@ -56,7 +52,7 @@ namespace RPG.Core
         public void StartGame()
         {
             SetState(GameState.Playing);
-            EventManager.Instance?.TriggerEvent("GameStarted", null);
+            EventBus.Publish(new GameStartedEvent());
         }
 
         public void PauseGame()
@@ -74,19 +70,19 @@ namespace RPG.Core
         public void EndGame()
         {
             SetState(GameState.GameOver);
-            EventManager.Instance?.TriggerEvent("GameEnded", null);
+            EventBus.Publish(new GameEndedEvent());
         }
 
         public void Victory()
         {
             SetState(GameState.Victory);
-            EventManager.Instance?.TriggerEvent("GameVictory", null);
+            EventBus.Publish(new GameVictoryEvent());
         }
 
         public void ReturnToMainMenu()
         {
             SetState(GameState.MainMenu);
-            EventManager.Instance?.TriggerEvent("ReturnToMainMenu", null);
+            EventBus.Publish(new ReturnToMainMenuEvent());
         }
 
         public void RestorePreviousState()
@@ -111,10 +107,4 @@ namespace RPG.Core
         }
     }
 
-    [System.Serializable]
-    public class GameStateChangedEventArgs
-    {
-        public GameState oldState;
-        public GameState newState;
-    }
 }
