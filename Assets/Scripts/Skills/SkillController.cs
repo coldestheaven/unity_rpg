@@ -110,8 +110,14 @@ namespace RPG.Skills
     /// </summary>
     public class SkillController : MonoBehaviour
     {
-        [Header("技能栏")]
+        [Header("技能栏（直接引用）")]
+        [Tooltip("直接拖入 SkillData 资产。优先级高于 skillSlotIds。")]
         public SkillData[] skillSlots = new SkillData[4];
+
+        [Header("技能栏（ID 加载）")]
+        [Tooltip("当对应 skillSlots[i] 为空时，从 GameDataService.Skills 按此 ID 加载。" +
+                 "数组长度应与 skillSlots 相同。格式: skill_fireball")]
+        public string[] skillSlotIds = new string[4];
 
         private SkillInstance[] skillInstances;
         private Transform playerTransform;
@@ -126,6 +132,7 @@ namespace RPG.Skills
 
         private void Awake()
         {
+            ResolveSkillSlotIds();
             InitializeSkills();
         }
 
@@ -134,6 +141,32 @@ namespace RPG.Skills
             playerTransform = transform;
             animator = GetComponent<Animator>();
             BindToSimulation();
+        }
+
+        /// <summary>
+        /// 对 skillSlots 中为 null 的格子，尝试按 skillSlotIds[i] 从 GameDataService 加载。
+        /// </summary>
+        private void ResolveSkillSlotIds()
+        {
+            if (skillSlotIds == null || skillSlotIds.Length == 0) return;
+
+            // Ensure array length matches
+            if (skillSlots == null || skillSlots.Length == 0)
+                skillSlots = new SkillData[skillSlotIds.Length];
+
+            for (int i = 0; i < skillSlots.Length; i++)
+            {
+                if (skillSlots[i] != null) continue;           // already assigned
+                if (i >= skillSlotIds.Length) continue;
+                string id = skillSlotIds[i];
+                if (string.IsNullOrEmpty(id)) continue;
+
+                var loaded = RPG.Data.GameDataService.Instance?.Skills?.GetById(id);
+                if (loaded != null)
+                    skillSlots[i] = loaded;
+                else
+                    Debug.LogWarning($"[SkillController] skillSlotIds[{i}]='{id}' 未在 SkillDatabase 中找到。", this);
+            }
         }
 
         private void Update()

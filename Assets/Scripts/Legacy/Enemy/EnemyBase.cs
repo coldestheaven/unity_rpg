@@ -1,3 +1,4 @@
+using RPG.Data;
 using UnityEngine;
 using UI.Views;
 
@@ -6,7 +7,11 @@ namespace RPG.Enemy
     public abstract class EnemyBase : MonoBehaviour
     {
         [Header("数据配置")]
+        [Tooltip("直接拖入 EnemyData 资产（优先）。留空时按 enemyId 从 GameDataService 加载。")]
         public EnemyData data;
+
+        [Tooltip("当 data 为空时从 GameDataService.Enemies 按此 ID 加载。格式: enemy_goblin")]
+        public string enemyId;
 
         [Header("基本属性")]
         public string enemyName;
@@ -52,6 +57,14 @@ namespace RPG.Enemy
             spriteRenderer = GetComponent<SpriteRenderer>();
             stateMachine = GetComponent<EnemyStateMachine>();
             player = GameObject.FindGameObjectWithTag("Player")?.transform;
+
+            // ID-based loading: resolve data from GameDataService when not assigned directly
+            if (data == null && !string.IsNullOrEmpty(enemyId))
+            {
+                data = GameDataService.Instance?.Enemies?.GetById(enemyId);
+                if (data == null)
+                    Debug.LogWarning($"[EnemyBase] enemyId='{enemyId}' 未在 EnemyDatabase 中找到。", this);
+            }
         }
 
         protected virtual void Start()
