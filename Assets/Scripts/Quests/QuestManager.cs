@@ -83,7 +83,7 @@ namespace RPG.Quests
             activeQuests[questId] = questInstance;
 
             OnQuestStarted?.Invoke(questInstance);
-            EventBus.Publish(new QuestStartedEvent { QuestId = questId, QuestName = questData.questName });
+            EventBus.Publish(new QuestStartedEvent(questId, questData.questName));
 
             Debug.Log($"Quest started: {questData.questName}");
             return true;
@@ -211,12 +211,7 @@ namespace RPG.Quests
                 }
             }
 
-            EventBus.Publish(new QuestRewardsClaimedEvent
-            {
-                QuestId    = questData.questId,
-                Experience = questData.experienceReward,
-                Gold       = questData.goldReward
-            });
+            EventBus.Publish(new QuestRewardsClaimedEvent(questData.questId, questData.experienceReward, questData.goldReward));
 
             Debug.Log($"Rewards given for quest: {questData.questName}");
         }
@@ -272,7 +267,7 @@ namespace RPG.Quests
                 {
                     if (prereq == completedQuestId)
                     {
-                        EventBus.Publish(new QuestAvailableEvent { QuestId = qd.questId, QuestName = qd.questName });
+                        EventBus.Publish(new QuestAvailableEvent(qd.questId, qd.questName));
                         Debug.Log($"New quest available: {qd.questName}");
                     }
                 }

@@ -247,11 +247,7 @@ namespace RPG.Achievements
             Data.Unlock();
             OnAchievementUnlocked?.Invoke(this);
 
-            Framework.Events.EventBus.Publish(new Framework.Events.AchievementUnlockedEvent
-            {
-                AchievementId   = Data.achievementId,
-                AchievementName = Data.achievementName
-            });
+            Framework.Events.EventBus.Publish(new Framework.Events.AchievementUnlockedEvent(Data.achievementId, Data.achievementName));
         }
 
         /// <summary>
@@ -267,10 +263,7 @@ namespace RPG.Achievements
             Data.ClaimRewards();
             GiveRewards();
 
-            Framework.Events.EventBus.Publish(new Framework.Events.AchievementRewardsClaimedEvent
-            {
-                AchievementId = Data.achievementId
-            });
+            Framework.Events.EventBus.Publish(new Framework.Events.AchievementRewardsClaimedEvent(Data.achievementId));
 
             return true;
         }

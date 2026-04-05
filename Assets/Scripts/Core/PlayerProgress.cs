@@ -99,12 +99,7 @@ namespace RPG.Core
                     Progress.experienceToNextLevel = xpToNext;
                     OnExperienceGained?.Invoke(amount);
 
-                    Framework.Events.EventBus.Publish(new Framework.Events.PlayerXPGainedEvent
-                    {
-                        Amount = amount,
-                        CurrentXP = currentXP,
-                        XPToNextLevel = xpToNext
-                    });
+                    Framework.Events.EventBus.Publish(new Framework.Events.PlayerXPGainedEvent(amount, currentXP, xpToNext));
 
                     NotifyProgressChanged();
                 });
@@ -121,12 +116,7 @@ namespace RPG.Core
 
                     OnLevelUp?.Invoke(newLevel);
 
-                    Framework.Events.EventBus.Publish(new Framework.Events.PlayerLevelUpEvent
-                    {
-                        OldLevel = oldLevel,
-                        NewLevel = newLevel,
-                        NewXPToNextLevel = newXPToNext
-                    });
+                    Framework.Events.EventBus.Publish(new Framework.Events.PlayerLevelUpEvent(oldLevel, newLevel, newXPToNext));
 
                     Debug.Log($"[PlayerProgressManager] Level up: {oldLevel} → {newLevel}");
                     NotifyProgressChanged();
@@ -141,11 +131,7 @@ namespace RPG.Core
                     Progress.gold = newTotal;
                     OnGoldGained?.Invoke(delta);
 
-                    Framework.Events.EventBus.Publish(new Framework.Events.GoldChangedEvent
-                    {
-                        CurrentGold = newTotal,
-                        Delta = delta
-                    });
+                    Framework.Events.EventBus.Publish(new Framework.Events.GoldChangedEvent(newTotal, delta));
 
                     NotifyProgressChanged();
                 });
@@ -174,12 +160,7 @@ namespace RPG.Core
                     int old = Progress.level;
                     Progress.LevelUp();
                     OnLevelUp?.Invoke(Progress.level);
-                    Framework.Events.EventBus.Publish(new Framework.Events.PlayerLevelUpEvent
-                    {
-                        OldLevel = old,
-                        NewLevel = Progress.level,
-                        NewXPToNextLevel = Progress.experienceToNextLevel
-                    });
+                    Framework.Events.EventBus.Publish(new Framework.Events.PlayerLevelUpEvent(old, Progress.level, Progress.experienceToNextLevel));
                 }
 
                 NotifyProgressChanged();
@@ -199,11 +180,7 @@ namespace RPG.Core
                 Progress.AddGold(amount);
                 OnGoldGained?.Invoke(amount);
 
-                Framework.Events.EventBus.Publish(new Framework.Events.GoldChangedEvent
-                {
-                    CurrentGold = Progress.gold,
-                    Delta = amount
-                });
+                Framework.Events.EventBus.Publish(new Framework.Events.GoldChangedEvent(Progress.gold, amount));
 
                 NotifyProgressChanged();
             }

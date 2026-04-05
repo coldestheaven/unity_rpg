@@ -284,11 +284,7 @@ namespace RPG.Items
         {
             gold += amount;
             OnGoldChanged?.Invoke(gold);
-            Framework.Events.EventBus.Publish(new Framework.Events.GoldChangedEvent
-            {
-                CurrentGold = (int)gold,
-                Delta       = (int)amount
-            });
+            Framework.Events.EventBus.Publish(new Framework.Events.GoldChangedEvent((int)gold, (int)amount));
         }
 
         /// <summary>
@@ -300,11 +296,7 @@ namespace RPG.Items
 
             gold -= amount;
             OnGoldChanged?.Invoke(gold);
-            Framework.Events.EventBus.Publish(new Framework.Events.GoldChangedEvent
-            {
-                CurrentGold = (int)gold,
-                Delta       = -(int)amount
-            });
+            Framework.Events.EventBus.Publish(new Framework.Events.GoldChangedEvent((int)gold, -(int)amount));
 
             return true;
         }

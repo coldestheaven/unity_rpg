@@ -3,222 +3,329 @@ using UnityEngine;
 namespace Framework.Events
 {
     /// <summary>
-    /// Marker interface for all typed game events used with <see cref="EventBus"/>.
+    /// 所有游戏事件实现此接口。
+    /// EventId 返回常量，EventBus 用它做数组索引，无虚调用开销。
     /// </summary>
-    public interface IGameEvent { }
+    public interface IGameEvent
+    {
+        GameEventId EventId { get; }
+    }
 
     // ──────────────────────────────────────────────────────────────────────────
     // Game State
     // ──────────────────────────────────────────────────────────────────────────
 
-    public sealed class GameStartedEvent : IGameEvent { }
-
-    public sealed class GameEndedEvent : IGameEvent { }
-
-    public sealed class GameVictoryEvent : IGameEvent { }
-
-    public sealed class GamePausedEvent : IGameEvent { }
-
-    public sealed class GameResumedEvent : IGameEvent { }
-
-    public sealed class ReturnToMainMenuEvent : IGameEvent { }
-
-    public sealed class GameStateChangedEvent : IGameEvent
+    public readonly struct GameStartedEvent : IGameEvent
     {
-        public string OldState;
-        public string NewState;
+        public GameEventId EventId => GameEventId.GameStarted;
+    }
+
+    public readonly struct GameEndedEvent : IGameEvent
+    {
+        public GameEventId EventId => GameEventId.GameEnded;
+    }
+
+    public readonly struct GameVictoryEvent : IGameEvent
+    {
+        public GameEventId EventId => GameEventId.GameVictory;
+    }
+
+    public readonly struct GamePausedEvent : IGameEvent
+    {
+        public GameEventId EventId => GameEventId.GamePaused;
+    }
+
+    public readonly struct GameResumedEvent : IGameEvent
+    {
+        public GameEventId EventId => GameEventId.GameResumed;
+    }
+
+    public readonly struct ReturnToMainMenuEvent : IGameEvent
+    {
+        public GameEventId EventId => GameEventId.ReturnToMainMenu;
+    }
+
+    public readonly struct GameStateChangedEvent : IGameEvent
+    {
+        public GameEventId EventId => GameEventId.GameStateChanged;
+        public readonly string OldState;
+        public readonly string NewState;
+        public GameStateChangedEvent(string old, string next) { OldState = old; NewState = next; }
     }
 
     // ──────────────────────────────────────────────────────────────────────────
     // Save / Load
     // ──────────────────────────────────────────────────────────────────────────
 
-    public sealed class GameSavedEvent : IGameEvent
+    public readonly struct GameSavedEvent : IGameEvent
     {
-        public int Slot;
-        public string SaveTime;
+        public GameEventId EventId => GameEventId.GameSaved;
+        public readonly int    Slot;
+        public readonly string SaveTime;
+        public GameSavedEvent(int slot, string time) { Slot = slot; SaveTime = time; }
     }
 
-    public sealed class GameLoadedEvent : IGameEvent
+    public readonly struct GameLoadedEvent : IGameEvent
     {
-        public int Slot;
-        public string SaveTime;
+        public GameEventId EventId => GameEventId.GameLoaded;
+        public readonly int Slot;
+        public GameLoadedEvent(int slot) { Slot = slot; }
     }
 
-    public sealed class SaveDeletedEvent : IGameEvent
+    public readonly struct SaveDeletedEvent : IGameEvent
     {
-        public int Slot;
+        public GameEventId EventId => GameEventId.SaveDeleted;
+        public readonly int Slot;
+        public SaveDeletedEvent(int slot) { Slot = slot; }
     }
 
     // ──────────────────────────────────────────────────────────────────────────
     // Player
     // ──────────────────────────────────────────────────────────────────────────
 
-    public sealed class PlayerDiedEvent : IGameEvent
+    public readonly struct PlayerDiedEvent : IGameEvent
     {
-        public Vector3 Position;
+        public GameEventId EventId => GameEventId.PlayerDied;
+        public readonly Vector3 Position;
+        public PlayerDiedEvent(Vector3 pos) { Position = pos; }
     }
 
-    public sealed class PlayerLevelUpEvent : IGameEvent
+    public readonly struct PlayerLevelUpEvent : IGameEvent
     {
-        public int OldLevel;
-        public int NewLevel;
-        public float NewXPToNextLevel;
+        public GameEventId EventId => GameEventId.PlayerLevelUp;
+        public readonly int   OldLevel;
+        public readonly int   NewLevel;
+        public readonly float NewXPToNextLevel;
+        public PlayerLevelUpEvent(int old, int next, float xpToNext)
+        {
+            OldLevel = old; NewLevel = next; NewXPToNextLevel = xpToNext;
+        }
     }
 
-    public sealed class PlayerXPGainedEvent : IGameEvent
+    public readonly struct PlayerXPGainedEvent : IGameEvent
     {
-        public float Amount;
-        public float CurrentXP;
-        public float XPToNextLevel;
+        public GameEventId EventId => GameEventId.PlayerXPGained;
+        public readonly float Amount;
+        public readonly float CurrentXP;
+        public readonly float XPToNextLevel;
+        public PlayerXPGainedEvent(float amount, float current, float toNext)
+        {
+            Amount = amount; CurrentXP = current; XPToNextLevel = toNext;
+        }
     }
 
-    public sealed class PlayerJumpedEvent : IGameEvent { }
-
-    public sealed class PlayerAttackedEvent : IGameEvent
+    public readonly struct PlayerJumpedEvent : IGameEvent
     {
-        public int Damage;
+        public GameEventId EventId => GameEventId.PlayerJumped;
+    }
+
+    public readonly struct PlayerAttackedEvent : IGameEvent
+    {
+        public GameEventId EventId => GameEventId.PlayerAttacked;
+        public readonly int Damage;
+        public PlayerAttackedEvent(int dmg) { Damage = dmg; }
     }
 
     // ──────────────────────────────────────────────────────────────────────────
-    // Gold / Currency
+    // Currency
     // ──────────────────────────────────────────────────────────────────────────
 
-    public sealed class GoldChangedEvent : IGameEvent
+    public readonly struct GoldChangedEvent : IGameEvent
     {
-        public int CurrentGold;
-        public int Delta;
+        public GameEventId EventId => GameEventId.GoldChanged;
+        public readonly int CurrentGold;
+        public readonly int Delta;
+        public GoldChangedEvent(int current, int delta) { CurrentGold = current; Delta = delta; }
     }
 
     // ──────────────────────────────────────────────────────────────────────────
     // Enemy
     // ──────────────────────────────────────────────────────────────────────────
 
-    public sealed class EnemyDiedEvent : IGameEvent
+    public readonly struct EnemyDiedEvent : IGameEvent
     {
-        public string EnemyId;
-        public string EnemyName;
-        public Vector3 Position;
-        public int XpReward;
-        public int GoldReward;
+        public GameEventId EventId => GameEventId.EnemyDied;
+        public readonly string  EnemyId;
+        public readonly string  EnemyName;
+        public readonly Vector3 Position;
+        public readonly int     XpReward;
+        public readonly int     GoldReward;
+        public EnemyDiedEvent(string id, string name, Vector3 pos, int xp, int gold)
+        {
+            EnemyId = id; EnemyName = name; Position = pos; XpReward = xp; GoldReward = gold;
+        }
     }
 
-    public sealed class EnemyKilledEvent : IGameEvent
+    public readonly struct EnemyKilledEvent : IGameEvent
     {
-        public string EnemyId;
-        public Vector3 Position;
+        public GameEventId EventId => GameEventId.EnemyKilled;
+        public readonly string  EnemyId;
+        public readonly Vector3 Position;
+        public EnemyKilledEvent(string id, Vector3 pos) { EnemyId = id; Position = pos; }
     }
 
     // ──────────────────────────────────────────────────────────────────────────
     // Items
     // ──────────────────────────────────────────────────────────────────────────
 
-    public sealed class ItemPickedUpEvent : IGameEvent
+    public readonly struct ItemPickedUpEvent : IGameEvent
     {
-        public string ItemId;
-        public string ItemName;
-        public int Quantity;
-        public Vector3 Position;
+        public GameEventId EventId => GameEventId.ItemPickedUp;
+        public readonly string  ItemId;
+        public readonly string  ItemName;
+        public readonly int     Quantity;
+        public readonly Vector3 Position;
+        public ItemPickedUpEvent(string id, string name, int qty, Vector3 pos)
+        {
+            ItemId = id; ItemName = name; Quantity = qty; Position = pos;
+        }
     }
 
-    public sealed class ItemPickupFailedEvent : IGameEvent
+    public readonly struct ItemPickupFailedEvent : IGameEvent
     {
-        public string ItemId;
-        public string ItemName;
-        public string Reason;
+        public GameEventId EventId => GameEventId.ItemPickupFailed;
+        public readonly string ItemId;
+        public readonly string ItemName;
+        public readonly string Reason;
+        public ItemPickupFailedEvent(string id, string name, string reason)
+        {
+            ItemId = id; ItemName = name; Reason = reason;
+        }
     }
 
-    public sealed class ItemUsedEvent : IGameEvent
+    public readonly struct ItemUsedEvent : IGameEvent
     {
-        public string ItemId;
-        public string ItemName;
+        public GameEventId EventId => GameEventId.ItemUsed;
+        public readonly string ItemId;
+        public readonly string ItemName;
+        public ItemUsedEvent(string id, string name) { ItemId = id; ItemName = name; }
     }
 
-    public sealed class ItemEquippedEvent : IGameEvent
+    public readonly struct ItemEquippedEvent : IGameEvent
     {
-        public string ItemId;
-        public string SlotName;
-        public bool IsEquipped;
+        public GameEventId EventId => GameEventId.ItemEquipped;
+        public readonly string ItemId;
+        public readonly string SlotName;
+        public readonly bool   IsEquipped;
+        public ItemEquippedEvent(string id, string slot, bool equipped)
+        {
+            ItemId = id; SlotName = slot; IsEquipped = equipped;
+        }
     }
 
-    public sealed class InventoryChangedEvent : IGameEvent { }
-
-    public sealed class QuestItemCollectedEvent : IGameEvent
+    public readonly struct InventoryChangedEvent : IGameEvent
     {
-        public string ItemId;
-        public string QuestId;
+        public GameEventId EventId => GameEventId.InventoryChanged;
+    }
+
+    public readonly struct QuestItemCollectedEvent : IGameEvent
+    {
+        public GameEventId EventId => GameEventId.QuestItemCollected;
+        public readonly string ItemId;
+        public readonly string QuestId;
+        public QuestItemCollectedEvent(string item, string quest) { ItemId = item; QuestId = quest; }
     }
 
     // ──────────────────────────────────────────────────────────────────────────
     // Skills
     // ──────────────────────────────────────────────────────────────────────────
 
-    public sealed class SkillUsedEvent : IGameEvent
+    public readonly struct SkillUsedEvent : IGameEvent
     {
-        public string SkillName;
-        public string SkillId;
-        public int SlotIndex;
-        public int Level;
-        public bool IsUltimate;
+        public GameEventId EventId => GameEventId.SkillUsed;
+        public readonly string SkillId;
+        public readonly string SkillName;
+        public readonly int    SlotIndex;
+        public readonly int    Level;
+        public readonly bool   IsUltimate;
+        public SkillUsedEvent(string id, string name, int slot, int level, bool ultimate = false)
+        {
+            SkillId = id; SkillName = name; SlotIndex = slot; Level = level; IsUltimate = ultimate;
+        }
     }
 
     // ──────────────────────────────────────────────────────────────────────────
     // Quests
     // ──────────────────────────────────────────────────────────────────────────
 
-    public sealed class QuestStartedEvent : IGameEvent
+    public readonly struct QuestStartedEvent : IGameEvent
     {
-        public string QuestId;
-        public string QuestName;
+        public GameEventId EventId => GameEventId.QuestStarted;
+        public readonly string QuestId;
+        public readonly string QuestName;
+        public QuestStartedEvent(string id, string name) { QuestId = id; QuestName = name; }
     }
 
-    public sealed class QuestCompletedEvent : IGameEvent
+    public readonly struct QuestCompletedEvent : IGameEvent
     {
-        public string QuestId;
-        public string QuestName;
+        public GameEventId EventId => GameEventId.QuestCompleted;
+        public readonly string QuestId;
+        public readonly string QuestName;
+        public QuestCompletedEvent(string id, string name) { QuestId = id; QuestName = name; }
     }
 
-    public sealed class QuestObjectivesCompletedEvent : IGameEvent
+    public readonly struct QuestObjectivesCompletedEvent : IGameEvent
     {
-        public string QuestId;
+        public GameEventId EventId => GameEventId.QuestObjectivesCompleted;
+        public readonly string QuestId;
+        public QuestObjectivesCompletedEvent(string id) { QuestId = id; }
     }
 
-    public sealed class QuestAvailableEvent : IGameEvent
+    public readonly struct QuestAvailableEvent : IGameEvent
     {
-        public string QuestId;
-        public string QuestName;
+        public GameEventId EventId => GameEventId.QuestAvailable;
+        public readonly string QuestId;
+        public readonly string QuestName;
+        public QuestAvailableEvent(string id, string name) { QuestId = id; QuestName = name; }
     }
 
-    public sealed class QuestRewardsClaimedEvent : IGameEvent
+    public readonly struct QuestRewardsClaimedEvent : IGameEvent
     {
-        public string QuestId;
-        public int Experience;
-        public int Gold;
+        public GameEventId EventId => GameEventId.QuestRewardsClaimed;
+        public readonly string QuestId;
+        public readonly int    Experience;
+        public readonly int    Gold;
+        public QuestRewardsClaimedEvent(string id, int xp, int gold)
+        {
+            QuestId = id; Experience = xp; Gold = gold;
+        }
     }
 
     // ──────────────────────────────────────────────────────────────────────────
     // Achievements
     // ──────────────────────────────────────────────────────────────────────────
 
-    public sealed class AchievementUnlockedEvent : IGameEvent
+    public readonly struct AchievementUnlockedEvent : IGameEvent
     {
-        public string AchievementId;
-        public string AchievementName;
+        public GameEventId EventId => GameEventId.AchievementUnlocked;
+        public readonly string AchievementId;
+        public readonly string AchievementName;
+        public AchievementUnlockedEvent(string id, string name)
+        {
+            AchievementId = id; AchievementName = name;
+        }
     }
 
-    public sealed class AchievementRewardsClaimedEvent : IGameEvent
+    public readonly struct AchievementRewardsClaimedEvent : IGameEvent
     {
-        public string AchievementId;
+        public GameEventId EventId => GameEventId.AchievementRewardsClaimed;
+        public readonly string AchievementId;
+        public AchievementRewardsClaimedEvent(string id) { AchievementId = id; }
     }
 
     // ──────────────────────────────────────────────────────────────────────────
     // Combat / Health
     // ──────────────────────────────────────────────────────────────────────────
 
-    public sealed class HealthChangedEvent : IGameEvent
+    public readonly struct HealthChangedEvent : IGameEvent
     {
-        public float CurrentHealth;
-        public float MaxHealth;
-        public GameObject Entity;
+        public GameEventId EventId => GameEventId.HealthChanged;
+        public readonly float      CurrentHealth;
+        public readonly float      MaxHealth;
+        public readonly GameObject Entity;
+        public HealthChangedEvent(float current, float max, GameObject entity)
+        {
+            CurrentHealth = current; MaxHealth = max; Entity = entity;
+        }
     }
 }

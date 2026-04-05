@@ -228,11 +228,7 @@ namespace RPG.Quests
             OnStateChanged?.Invoke(State);
             OnQuestCompleted?.Invoke();
 
-            Framework.Events.EventBus.Publish(new Framework.Events.QuestCompletedEvent
-            {
-                QuestId   = QuestData.questId,
-                QuestName = QuestData.questName
-            });
+            Framework.Events.EventBus.Publish(new Framework.Events.QuestCompletedEvent(QuestData.questId, QuestData.questName));
 
             Debug.Log($"Quest completed: {QuestData.questName}");
         }
@@ -282,10 +278,7 @@ namespace RPG.Quests
                     // 检查是否所有目标都完成了
                     if (IsAllObjectivesCompleted())
                     {
-                        Framework.Events.EventBus.Publish(new Framework.Events.QuestObjectivesCompletedEvent
-                        {
-                            QuestId = QuestData.questId
-                        });
+                        Framework.Events.EventBus.Publish(new Framework.Events.QuestObjectivesCompletedEvent(QuestData.questId));
                     }
 
                     break;

@@ -298,13 +298,8 @@ namespace RPG.Skills
             ExecuteSkill(skillInstance);
             OnSkillUsed?.Invoke(slotIndex);
 
-            Framework.Events.EventBus.Publish(new Framework.Events.SkillUsedEvent
-            {
-                SkillId   = skillInstance.SkillData.name,
-                SkillName = skillInstance.SkillData.skillName,
-                SlotIndex = slotIndex,
-                Level     = skillInstance.Level
-            });
+            Framework.Events.EventBus.Publish(new Framework.Events.SkillUsedEvent(
+                skillInstance.SkillData.name, skillInstance.SkillData.skillName, slotIndex, skillInstance.Level));
 
             return true;
         }
@@ -400,14 +395,8 @@ namespace RPG.Skills
             // 终极技能可能需要特殊处理
             ExecuteActiveSkill(skillData, skillLevel);
 
-            Framework.Events.EventBus.Publish(new Framework.Events.SkillUsedEvent
-            {
-                SkillId    = skillData.name,
-                SkillName  = skillData.skillName,
-                SlotIndex  = -1,
-                Level      = 1,
-                IsUltimate = true
-            });
+            Framework.Events.EventBus.Publish(new Framework.Events.SkillUsedEvent(
+                skillData.name, skillData.skillName, -1, 1, ultimate: true));
         }
 
         private void ExecuteToggleSkill(SkillData skillData)

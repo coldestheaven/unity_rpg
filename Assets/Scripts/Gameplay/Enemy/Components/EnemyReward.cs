@@ -45,13 +45,8 @@ namespace Gameplay.Enemy
             GameManager.Instance?.AddExperience(experienceReward);
             GameManager.Instance?.AddGold(goldReward);
 
-            Framework.Events.EventBus.Publish(new Framework.Events.EnemyDiedEvent
-            {
-                EnemyName = gameObject.name,
-                Position = transform.position,
-                XpReward = experienceReward,
-                GoldReward = goldReward
-            });
+            Framework.Events.EventBus.Publish(new Framework.Events.EnemyDiedEvent(
+                gameObject.name, gameObject.name, transform.position, experienceReward, goldReward));
         }
 
         public void Configure(int experienceAmount, int goldAmount)

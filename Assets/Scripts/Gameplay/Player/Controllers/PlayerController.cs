@@ -189,7 +189,7 @@ namespace Gameplay.Player
 
         private void HandleAttack(int damage)
         {
-            Framework.Events.EventBus.Publish(new Framework.Events.PlayerAttackedEvent { Damage = damage });
+            Framework.Events.EventBus.Publish(new Framework.Events.PlayerAttackedEvent(damage));
         }
 
         private void HandleAttackFinished()
@@ -208,7 +208,7 @@ namespace Gameplay.Player
         {
             Debug.Log("Player died");
             playerStateMachine?.ForceState(PlayerStateType.Dead);
-            Framework.Events.EventBus.Publish(new Framework.Events.PlayerDiedEvent { Position = transform.position });
+            Framework.Events.EventBus.Publish(new Framework.Events.PlayerDiedEvent(transform.position));
         }
 
         private void HandleStateChanged(PlayerStateType previousState, PlayerStateType nextState)

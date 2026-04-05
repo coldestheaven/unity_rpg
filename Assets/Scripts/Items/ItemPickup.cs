@@ -194,13 +194,8 @@ namespace RPG.Items
 
         private void OnPickupSuccess(GameObject player)
         {
-            Framework.Events.EventBus.Publish(new Framework.Events.ItemPickedUpEvent
-            {
-                ItemId   = itemData?.name,
-                ItemName = itemData?.itemName,
-                Quantity = quantity,
-                Position = transform.position
-            });
+            Framework.Events.EventBus.Publish(new Framework.Events.ItemPickedUpEvent(
+                itemData?.name, itemData?.itemName, quantity, transform.position));
 
             Destroy(gameObject);
         }
@@ -209,12 +204,8 @@ namespace RPG.Items
         {
             Debug.LogWarning($"Failed to pickup {itemData?.itemName}: {result}");
 
-            Framework.Events.EventBus.Publish(new Framework.Events.ItemPickupFailedEvent
-            {
-                ItemId   = itemData?.name,
-                ItemName = itemData?.itemName,
-                Reason   = result.ToString()
-            });
+            Framework.Events.EventBus.Publish(new Framework.Events.ItemPickupFailedEvent(
+                itemData?.name, itemData?.itemName, result.ToString()));
         }
 
         public void SetItem(ItemData item, int qty = 1)

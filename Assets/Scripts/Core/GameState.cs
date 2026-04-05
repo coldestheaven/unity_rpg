@@ -44,7 +44,7 @@ namespace RPG.Core
             OnStateChanged?.Invoke(newState);
             OnStateTransition?.Invoke(old, newState);
 
-            EventBus.Publish(new GameStateChangedEvent { OldState = old.ToString(), NewState = newState.ToString() });
+            EventBus.Publish(new GameStateChangedEvent(old.ToString(), newState.ToString()));
 
             Debug.Log($"[GameState] {old} → {newState}");
         }

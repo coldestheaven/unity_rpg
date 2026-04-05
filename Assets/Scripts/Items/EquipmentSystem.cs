@@ -70,12 +70,7 @@ namespace RPG.Items
             OnEquipmentChanged?.Invoke(slot, equipment);
             NotifyModifiersChanged();
 
-            Framework.Events.EventBus.Publish(new Framework.Events.ItemEquippedEvent
-            {
-                ItemId    = equipment.name,
-                SlotName  = slot.ToString(),
-                IsEquipped = true
-            });
+            Framework.Events.EventBus.Publish(new Framework.Events.ItemEquippedEvent(equipment.name, slot.ToString(), true));
 
             Debug.Log($"Equipped {equipment.itemName} to {slot}");
             return true;
@@ -102,12 +97,7 @@ namespace RPG.Items
             OnEquipmentUnequipped?.Invoke(slot);
             NotifyModifiersChanged();
 
-            Framework.Events.EventBus.Publish(new Framework.Events.ItemEquippedEvent
-            {
-                ItemId    = item.name,
-                SlotName  = slot.ToString(),
-                IsEquipped = false
-            });
+            Framework.Events.EventBus.Publish(new Framework.Events.ItemEquippedEvent(item.name, slot.ToString(), false));
 
             Debug.Log($"Unequipped item from {slot}");
             return true;
@@ -145,12 +135,7 @@ namespace RPG.Items
             OnEquipmentChanged?.Invoke(slot, fromInventory);
             NotifyModifiersChanged();
 
-            Framework.Events.EventBus.Publish(new Framework.Events.ItemEquippedEvent
-            {
-                ItemId    = fromInventory.name,
-                SlotName  = slot.ToString(),
-                IsEquipped = true
-            });
+            Framework.Events.EventBus.Publish(new Framework.Events.ItemEquippedEvent(fromInventory.name, slot.ToString(), true));
 
             return true;
         }

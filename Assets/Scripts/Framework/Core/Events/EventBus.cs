@@ -5,80 +5,128 @@ using UnityEngine;
 namespace Framework.Events
 {
     /// <summary>
-    /// Type-safe generic event bus implementing the Observer pattern.
+    /// 零 GC 类型安全事件总线（枚举 key + struct 事件）。
     ///
-    /// Use EventBus for all new code. It is a compile-time-checked alternative to the
-    /// string-keyed EventManager: no magic strings, no object casting, no missed unsubscribes.
+    /// 设计要点：
+    ///   • <see cref="GameEventId"/> 枚举值直接作为数组下标 — O(1)，无哈希，无装箱。
+    ///   • 事件载体为 <c>readonly struct</c> — 栈分配，不上堆。
+    ///   • <see cref="Publish{TEvent}"/> 用 <c>in</c> 参数 — 传引用，不复制结构体。
+    ///   • <see cref="EventIdOf{T}"/> 静态缓存 — 每个泛型实例化只算一次 ID。
+    ///   • 分发使用静态缓冲区 — 无 <c>ToArray()</c>，无临时堆分配。
     ///
-    /// Usage:
-    ///   EventBus.Subscribe&lt;PlayerLevelUpEvent&gt;(OnLevelUp);
-    ///   EventBus.Publish(new PlayerLevelUpEvent { NewLevel = 5 });
-    ///   EventBus.Unsubscribe&lt;PlayerLevelUpEvent&gt;(OnLevelUp);
+    /// 用法（与旧版 API 完全兼容）：
+    /// <code>
+    ///   EventBus.Subscribe&lt;PlayerDiedEvent&gt;(OnPlayerDied);
+    ///   EventBus.Publish(new PlayerDiedEvent(transform.position));
+    ///   EventBus.Unsubscribe&lt;PlayerDiedEvent&gt;(OnPlayerDied);
+    /// </code>
     ///
-    /// Always unsubscribe in OnDisable / OnDestroy to avoid ghost listeners.
+    /// 注意：仅在 Unity 主线程调用；无内置线程锁。
     /// </summary>
     public static class EventBus
     {
-        private static readonly Dictionary<Type, List<Delegate>> _handlers =
-            new Dictionary<Type, List<Delegate>>();
+        // 以枚举值为下标的处理器列表数组；长度固定，无扩容，无装箱。
+        private static readonly List<Delegate>[] _handlers =
+            new List<Delegate>[(int)GameEventId._Count];
 
-        /// <summary>Registers a handler. Duplicate registrations are silently ignored.</summary>
-        public static void Subscribe<TEvent>(Action<TEvent> handler) where TEvent : IGameEvent
+        // 静态分发缓冲区 — 重用，避免每次 Publish 分配数组。
+        // 当订阅数超出容量时才会触发一次扩容分配，之后保持稳定。
+        private static Delegate[] _dispatchBuffer = new Delegate[16];
+
+        // ── Subscribe / Unsubscribe ───────────────────────────────────────────
+
+        /// <summary>注册处理器。重复注册静默忽略。</summary>
+        public static void Subscribe<TEvent>(Action<TEvent> handler)
+            where TEvent : struct, IGameEvent
         {
-            var type = typeof(TEvent);
-            if (!_handlers.TryGetValue(type, out var list))
-            {
-                list = new List<Delegate>();
-                _handlers[type] = list;
-            }
-
-            if (!list.Contains(handler))
-                list.Add(handler);
+            int id = EventIdOf<TEvent>.Value;
+            ref var slot = ref _handlers[id];
+            if (slot == null) slot = new List<Delegate>(4);
+            if (!slot.Contains(handler)) slot.Add(handler);
         }
 
-        /// <summary>Removes a previously registered handler.</summary>
-        public static void Unsubscribe<TEvent>(Action<TEvent> handler) where TEvent : IGameEvent
+        /// <summary>移除处理器。</summary>
+        public static void Unsubscribe<TEvent>(Action<TEvent> handler)
+            where TEvent : struct, IGameEvent
         {
-            if (_handlers.TryGetValue(typeof(TEvent), out var list))
-            {
-                list.Remove(handler);
-                if (list.Count == 0)
-                    _handlers.Remove(typeof(TEvent));
-            }
+            _handlers[EventIdOf<TEvent>.Value]?.Remove(handler);
         }
+
+        // ── Publish ───────────────────────────────────────────────────────────
 
         /// <summary>
-        /// Publishes an event to all current subscribers.
-        /// Dispatches to a snapshot, so listeners may unsubscribe themselves during the call.
-        /// Per-listener exceptions are caught and logged so a broken handler never drops others.
+        /// 向所有当前订阅者分发事件。
+        /// <paramref name="evt"/> 以 <c>in</c> 传递（按引用，不复制）。
+        /// 分发前将处理器列表快照到静态缓冲区，允许处理器内部调用 Unsubscribe。
+        /// 单个处理器抛出的异常不会中断其他处理器。
         /// </summary>
-        public static void Publish<TEvent>(TEvent gameEvent) where TEvent : IGameEvent
+        public static void Publish<TEvent>(in TEvent evt)
+            where TEvent : struct, IGameEvent
         {
-            if (!_handlers.TryGetValue(typeof(TEvent), out var list) || list.Count == 0)
-                return;
+            var list = _handlers[(int)evt.EventId];
+            if (list == null || list.Count == 0) return;
 
-            var snapshot = list.ToArray();
-            foreach (var handler in snapshot)
+            int count = list.Count;
+
+            // 按需扩容，保持 2x 冗余；正常情况下不分配。
+            if (_dispatchBuffer.Length < count)
+                _dispatchBuffer = new Delegate[count * 2];
+
+            list.CopyTo(_dispatchBuffer, 0);
+
+            for (int i = 0; i < count; i++)
             {
                 try
                 {
-                    ((Action<TEvent>)handler)(gameEvent);
+                    ((Action<TEvent>)_dispatchBuffer[i]).Invoke(evt);
                 }
                 catch (Exception e)
                 {
-                    Debug.LogError($"[EventBus] Exception in handler for {typeof(TEvent).Name}: {e}");
+                    Debug.LogError($"[EventBus] {typeof(TEvent).Name} 处理器异常: {e}");
+                }
+                finally
+                {
+                    _dispatchBuffer[i] = null;   // 清除引用，避免 GC 根泄漏
                 }
             }
         }
 
-        public static bool HasSubscribers<TEvent>() where TEvent : IGameEvent =>
-            _handlers.TryGetValue(typeof(TEvent), out var list) && list.Count > 0;
+        // ── Query ─────────────────────────────────────────────────────────────
 
-        /// <summary>Clears all handlers for a specific event type.</summary>
-        public static void Clear<TEvent>() where TEvent : IGameEvent =>
-            _handlers.Remove(typeof(TEvent));
+        public static bool HasSubscribers<TEvent>()
+            where TEvent : struct, IGameEvent
+        {
+            var list = _handlers[EventIdOf<TEvent>.Value];
+            return list != null && list.Count > 0;
+        }
 
-        /// <summary>Clears all registered handlers. Call on major scene transitions.</summary>
-        public static void ClearAll() => _handlers.Clear();
+        // ── Clear ─────────────────────────────────────────────────────────────
+
+        /// <summary>清除指定事件类型的所有处理器。</summary>
+        public static void Clear<TEvent>()
+            where TEvent : struct, IGameEvent
+            => _handlers[EventIdOf<TEvent>.Value]?.Clear();
+
+        /// <summary>清除所有处理器。建议在重大场景切换时调用。</summary>
+        public static void ClearAll()
+        {
+            for (int i = 0; i < _handlers.Length; i++)
+                _handlers[i]?.Clear();
+        }
+
+        // ── Internal ──────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// 每个事件类型的枚举 ID 静态缓存。
+        /// JIT 在第一次使用时初始化，之后读取为纯字段访问，零开销。
+        /// </summary>
+        private static class EventIdOf<T> where T : struct, IGameEvent
+        {
+            /// <summary>
+            /// <c>default(T)</c> 创建零值结构体（栈上），调用 EventId getter 返回
+            /// 该类型的固定枚举值。整个表达式在类型首次使用时计算一次。
+            /// </summary>
+            public static readonly int Value = (int)default(T).EventId;
+        }
     }
 }

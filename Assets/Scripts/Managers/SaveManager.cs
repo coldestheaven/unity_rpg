@@ -49,7 +49,7 @@ namespace Managers
             try
             {
                 File.WriteAllText(saveFile, JsonUtility.ToJson(saveData, true));
-                Framework.Events.EventBus.Publish(new Framework.Events.GameSavedEvent { Slot = slot });
+                Framework.Events.EventBus.Publish(new Framework.Events.GameSavedEvent(slot, System.DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")));
                 Debug.Log($"Game saved to slot {slot}");
             }
             catch (Exception e)
@@ -74,7 +74,7 @@ namespace Managers
                 SaveData saveData = JsonUtility.FromJson<SaveData>(json);
 
                 ApplySaveData(saveData);
-                Framework.Events.EventBus.Publish(new Framework.Events.GameLoadedEvent { Slot = slot });
+                Framework.Events.EventBus.Publish(new Framework.Events.GameLoadedEvent(slot));
                 Debug.Log($"Game loaded from slot {slot}: {saveData.saveTime}");
             }
             catch (Exception e)
