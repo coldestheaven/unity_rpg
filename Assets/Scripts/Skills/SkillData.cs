@@ -74,6 +74,11 @@ namespace RPG.Skills
                  "Leave null to use the legacy skill-type switch in SkillController.")]
         public SkillExecutionStrategy executionStrategy;
 
+        [Header("节点图 (Graph Pattern)")]
+        [Tooltip("当此字段不为空时，技能执行将由节点图驱动，忽略 executionStrategy。" +
+                 "可在 RPG → 技能节点图编辑器 中编辑。")]
+        public RPG.Skills.Graph.SkillGraph skillGraph;
+
         /// <summary>
         /// 获取指定等级的伤害
         /// </summary>

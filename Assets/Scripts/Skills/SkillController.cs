@@ -300,6 +300,17 @@ namespace RPG.Skills
                 AudioSource.PlayClipAtPoint(skillData.castSound, transform.position);
             }
 
+            // Graph Pattern: node graph takes highest priority
+            if (skillData.skillGraph != null)
+            {
+                RPG.Skills.Graph.SkillGraphExecutor.Execute(
+                    skillData.skillGraph,
+                    skillData,
+                    skillInstance.Level,
+                    playerTransform);
+                return;
+            }
+
             // Strategy Pattern: delegate to assigned SO strategy if present
             if (skillData.executionStrategy != null)
             {

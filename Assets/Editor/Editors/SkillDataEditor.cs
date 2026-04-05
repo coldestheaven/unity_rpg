@@ -24,11 +24,13 @@ namespace Editor
         private SerializedProperty _damageInc, _cooldownRed, _manaInc;
         private SerializedProperty _effectPrefab, _impactEffect, _trailEffect, _castSound;
         private SerializedProperty _strategy;
+        private SerializedProperty _skillGraph;
 
         private int _previewLevel = 1;
-        private bool _showScaling = true;
-        private bool _showEffects = true;
-        private bool _showStrategy = true;
+        private bool _showScaling   = true;
+        private bool _showEffects   = true;
+        private bool _showStrategy  = true;
+        private bool _showGraph     = true;
 
         private void OnEnable()
         {
@@ -55,6 +57,7 @@ namespace Editor
             _trailEffect      = SP("trailEffect");
             _castSound        = SP("castSound");
             _strategy         = SP("executionStrategy");
+            _skillGraph       = SP("skillGraph");
 
             var skill = (SkillData)target;
             _previewLevel = Mathf.Clamp(skill.level, 1, skill.maxLevel);
@@ -81,6 +84,9 @@ namespace Editor
 
             _showStrategy = EditorGUILayout.Foldout(_showStrategy, "执行策略 (Strategy Pattern)", true);
             if (_showStrategy) DrawStrategy();
+
+            _showGraph = EditorGUILayout.Foldout(_showGraph, "节点图 (Graph Pattern)", true);
+            if (_showGraph) DrawGraphSection();
 
             serializedObject.ApplyModifiedProperties();
         }
@@ -262,6 +268,63 @@ namespace Editor
                     "未设置策略 — 回退到 SkillController 的 legacy switch。\n" +
                     "点击「在技能编辑器中打开 →」可一键创建策略资产。",
                     MessageType.Info);
+            }
+
+            EditorGUI.indentLevel--;
+            EditorGUILayout.Space(4);
+        }
+
+        // ── Graph section ─────────────────────────────────────────────────────
+        private void DrawGraphSection()
+        {
+            EditorGUI.indentLevel++;
+            EditorGUILayout.PropertyField(_skillGraph, new GUIContent("技能节点图"));
+
+            var graphAsset = _skillGraph.objectReferenceValue as RPG.Skills.Graph.SkillGraph;
+
+            if (graphAsset != null)
+            {
+                EditorGUILayout.HelpBox(
+                    $"节点数: {graphAsset.nodes.Count}  |  连线数: {graphAsset.connections.Count}\n" +
+                    "节点图优先于「执行策略」执行。",
+                    MessageType.None);
+
+                if (GUILayout.Button("在节点图编辑器中打开 →"))
+                    SkillGraphEditorWindow.OpenGraph(graphAsset);
+            }
+            else
+            {
+                EditorGUILayout.HelpBox(
+                    "未设置节点图。赋值后将使用节点图驱动技能逻辑，优先级最高。\n" +
+                    "通过 RPG → 技能节点图编辑器 → 新建节点图 创建资产。",
+                    MessageType.Info);
+
+                if (GUILayout.Button("创建并绑定新节点图"))
+                {
+                    string path = EditorUtility.SaveFilePanelInProject(
+                        "新建技能节点图",
+                        ((SkillData)target).name + "_Graph",
+                        "asset",
+                        "保存节点图资产",
+                        "Assets/Gameplay/Skills/Graphs");
+
+                    if (!string.IsNullOrEmpty(path))
+                    {
+                        var graph = CreateInstance<RPG.Skills.Graph.SkillGraph>();
+                        var entry = (RPG.Skills.Graph.SkillNode)
+                            System.Activator.CreateInstance(typeof(RPG.Skills.Graph.Nodes.OnCastNode));
+                        entry.editorPosition = new UnityEngine.Vector2(100, 150);
+                        graph.AddNode(entry);
+
+                        AssetDatabase.CreateAsset(graph, path);
+                        AssetDatabase.SaveAssets();
+
+                        serializedObject.FindProperty("skillGraph").objectReferenceValue = graph;
+                        serializedObject.ApplyModifiedProperties();
+
+                        SkillGraphEditorWindow.OpenGraph(graph);
+                    }
+                }
             }
 
             EditorGUI.indentLevel--;
