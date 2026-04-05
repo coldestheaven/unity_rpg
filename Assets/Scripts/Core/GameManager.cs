@@ -1,8 +1,10 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using Framework.Events;
+using Framework.Threading;
 using Gameplay.Player;
 using UI.Controllers;
+using RPG.Simulation;
 
 namespace RPG.Core
 {
@@ -33,6 +35,9 @@ namespace RPG.Core
 
         private bool isInitialized = false;
 
+        // Logic-layer simulation — runs on a background thread.
+        private GameSimulation _simulation;
+
         #region Unity Lifecycle
 
         private void Awake()
@@ -41,6 +46,17 @@ namespace RPG.Core
             {
                 Instance = this;
                 DontDestroyOnLoad(gameObject);
+
+                // Ensure MainThreadDispatcher exists on the same persistent object so
+                // the logic thread can safely marshal callbacks back to the main thread.
+                if (GetComponent<MainThreadDispatcher>() == null)
+                    gameObject.AddComponent<MainThreadDispatcher>();
+
+                // Create and start the logic-layer simulation BEFORE any managers
+                // so that PlayerProgressManager.Start() can bind to it.
+                _simulation = new GameSimulation(skillSlotCount: 4, maxMana: 100f);
+                _simulation.Start();
+
                 InitializeManagers();
             }
             else
@@ -63,6 +79,10 @@ namespace RPG.Core
         private void OnDestroy()
         {
             UnsubscribeFromEvents();
+
+            // Stop the logic thread cleanly before the GameObject is destroyed.
+            _simulation?.Dispose();
+            _simulation = null;
 
             if (Instance == this)
             {

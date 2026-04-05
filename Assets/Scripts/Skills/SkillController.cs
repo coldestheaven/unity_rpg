@@ -2,6 +2,7 @@ using UnityEngine;
 using System;
 using Gameplay.Combat;
 using Framework.Events;
+using RPG.Simulation;
 
 namespace RPG.Skills
 {
@@ -86,6 +87,16 @@ namespace RPG.Skills
         }
 
         /// <summary>
+        /// Writes the authoritative cooldown value received from the logic-thread simulation.
+        /// Only call from the main thread (via MainThreadDispatcher).
+        /// </summary>
+        public void SyncCooldown(float remaining)
+        {
+            RemainingCooldown = remaining;
+            OnCooldownChanged?.Invoke(RemainingCooldown);
+        }
+
+        /// <summary>
         /// 解锁/锁定技能
         /// </summary>
         public void SetUnlocked(bool unlocked)
@@ -122,12 +133,37 @@ namespace RPG.Skills
         {
             playerTransform = transform;
             animator = GetComponent<Animator>();
+            BindToSimulation();
         }
 
         private void Update()
         {
             UpdateCooldowns();
             HandleSkillInput();
+        }
+
+        /// <summary>
+        /// Subscribe to the logic-thread simulation so cooldown state stays in sync
+        /// with the background tick without polling in Update().
+        /// </summary>
+        private void BindToSimulation()
+        {
+            var sim = GameSimulation.Instance;
+            if (sim == null) return;
+
+            // Resize the simulation slot count to match the inspector configuration.
+            // (SkillCooldownSimulation is constructed with the configured slot count
+            //  in GameManager, so this is just a safety check.)
+            sim.Skills.OnCooldownChanged += (slot, remaining) =>
+            {
+                // Sync back to SkillInstance so existing UI code reading
+                // skillInstance.RemainingCooldown still works correctly.
+                Framework.Threading.MainThreadDispatcher.Dispatch(() =>
+                {
+                    if (slot >= 0 && slot < skillInstances.Length)
+                        skillInstances[slot]?.SyncCooldown(remaining);
+                });
+            };
         }
 
         private void InitializeSkills()
@@ -145,15 +181,15 @@ namespace RPG.Skills
 
         private void UpdateCooldowns()
         {
-            float deltaTime = Time.deltaTime;
+            // When the logic-thread simulation is running, cooldowns are ticked there
+            // at ~60 Hz and synced back to SkillInstance via MainThreadDispatcher.
+            // Fall back to main-thread ticking only when no simulation is available
+            // (e.g. during editor tests or before GameManager initialises).
+            if (GameSimulation.Instance != null) return;
 
+            float deltaTime = Time.deltaTime;
             foreach (var skillInstance in skillInstances)
-            {
-                if (skillInstance != null)
-                {
-                    skillInstance.UpdateCooldown(deltaTime);
-                }
-            }
+                skillInstance?.UpdateCooldown(deltaTime);
         }
 
         private void HandleSkillInput()
@@ -170,62 +206,80 @@ namespace RPG.Skills
         }
 
         /// <summary>
-        /// 尝试使用技能
+        /// 尝试使用技能。
+        ///
+        /// 当逻辑线程仿真运行时，冷却/法力的 <em>状态变更</em> 提交给逻辑线程；
+        /// 动画、音效、伤害等表现操作立即在主线程执行。
+        /// 冷却/法力检查在主线程做乐观预检（线程安全只读），
+        /// 真正的状态写入由逻辑线程的 TryActivate 保证原子性。
         /// </summary>
         public bool TryUseSkill(int slotIndex)
         {
-            if (slotIndex < 0 || slotIndex >= skillInstances.Length)
-            {
-                return false;
-            }
+            if (slotIndex < 0 || slotIndex >= skillInstances.Length) return false;
 
             SkillInstance skillInstance = skillInstances[slotIndex];
-            if (skillInstance == null)
-            {
-                return false;
-            }
+            if (skillInstance == null) return false;
 
-            // 检查冷却
-            if (skillInstance.IsOnCooldown)
-            {
-                Debug.Log($"Skill {slotIndex} is on cooldown");
-                return false;
-            }
-
-            // 检查法力
             float manaCost = skillInstance.SkillData.GetManaCost(skillInstance.Level);
-            if (!HasEnoughMana(manaCost))
-            {
-                Debug.Log($"Not enough mana");
-                return false;
-            }
+            float cooldownDuration = skillInstance.SkillData.GetCooldown(skillInstance.Level);
 
-            // 使用技能
-            if (skillInstance.UseSkill())
+            var sim = GameSimulation.Instance;
+            if (sim != null)
             {
+                // Optimistic pre-check on main thread using thread-safe reads.
+                if (sim.Skills.IsOnCooldown(slotIndex))
+                {
+                    Debug.Log($"Skill {slotIndex} is on cooldown (sim)");
+                    return false;
+                }
+                if (sim.Skills.Mana < manaCost)
+                {
+                    Debug.Log("Not enough mana (sim)");
+                    return false;
+                }
+
+                // Commit authoritative state change on the logic thread.
+                // TryActivate is atomic and re-validates internally.
+                int capturedSlot = slotIndex;
+                sim.EnqueueWork(() => sim.Skills.TryActivate(capturedSlot, cooldownDuration, manaCost));
+            }
+            else
+            {
+                // Fallback: direct check and mutation on main thread.
+                if (skillInstance.IsOnCooldown)
+                {
+                    Debug.Log($"Skill {slotIndex} is on cooldown");
+                    return false;
+                }
+                if (!HasEnoughMana(manaCost))
+                {
+                    Debug.Log("Not enough mana");
+                    return false;
+                }
+
+                skillInstance.StartCooldown();
                 ConsumeMana(manaCost);
-                ExecuteSkill(skillInstance);
-                OnSkillUsed?.Invoke(slotIndex);
-
-                // Typed event bus (new) + legacy string bus (backward compat)
-                Framework.Events.EventBus.Publish(new Framework.Events.SkillUsedEvent
-                {
-                    SkillName = skillInstance.SkillData.skillName,
-                    SlotIndex = slotIndex,
-                    Level = skillInstance.Level
-                });
-
-                EventManager.Instance?.TriggerEvent("SkillUsed", new SkillUsedEventArgs
-                {
-                    skillName = skillInstance.SkillData.skillName,
-                    slotIndex = slotIndex,
-                    level = skillInstance.Level
-                });
-
-                return true;
             }
 
-            return false;
+            // Presentation: always runs on the main thread.
+            ExecuteSkill(skillInstance);
+            OnSkillUsed?.Invoke(slotIndex);
+
+            Framework.Events.EventBus.Publish(new Framework.Events.SkillUsedEvent
+            {
+                SkillName = skillInstance.SkillData.skillName,
+                SlotIndex = slotIndex,
+                Level = skillInstance.Level
+            });
+
+            EventManager.Instance?.TriggerEvent("SkillUsed", new SkillUsedEventArgs
+            {
+                skillName = skillInstance.SkillData.skillName,
+                slotIndex = slotIndex,
+                level = skillInstance.Level
+            });
+
+            return true;
         }
 
         /// <summary>
@@ -401,15 +455,16 @@ namespace RPG.Skills
         }
 
         /// <summary>
-        /// 检查法力是否足够
+        /// 检查法力是否足够（优先读取逻辑层仿真状态）
         /// </summary>
         private bool HasEnoughMana(float amount)
         {
-            return currentMana >= amount;
+            var sim = GameSimulation.Instance;
+            return sim != null ? sim.Skills.Mana >= amount : currentMana >= amount;
         }
 
         /// <summary>
-        /// 消耗法力
+        /// 消耗法力（仅在无仿真时作为后备，仿真路径由 TryActivate 处理）
         /// </summary>
         private void ConsumeMana(float amount)
         {
@@ -417,36 +472,37 @@ namespace RPG.Skills
         }
 
         /// <summary>
-        /// 恢复法力
+        /// 恢复法力 — 同步到逻辑层仿真
         /// </summary>
         public void RestoreMana(float amount)
         {
-            currentMana += (int)amount;
+            var sim = GameSimulation.Instance;
+            if (sim != null)
+                sim.EnqueueWork(() => sim.Skills.RestoreMana(amount));
+            else
+                currentMana += (int)amount;
         }
 
         /// <summary>
-        /// 获取技能冷却进度
+        /// 获取技能冷却进度 [0,1]，1 = 可用。
+        /// 读取逻辑层仿真的冷却值（线程安全），无仿真时回退到 SkillInstance 本地值。
         /// </summary>
         public float GetSkillCooldownProgress(int slotIndex)
         {
-            if (slotIndex < 0 || slotIndex >= skillInstances.Length)
-            {
-                return 0f;
-            }
+            if (slotIndex < 0 || slotIndex >= skillInstances.Length) return 0f;
 
             SkillInstance skillInstance = skillInstances[slotIndex];
-            if (skillInstance == null || skillInstance.SkillData == null)
-            {
-                return 0f;
-            }
+            if (skillInstance?.SkillData == null) return 0f;
 
             float maxCooldown = skillInstance.SkillData.GetCooldown(skillInstance.Level);
-            if (maxCooldown <= 0)
-            {
-                return 1f;
-            }
+            if (maxCooldown <= 0f) return 1f;
 
-            return 1f - (skillInstance.RemainingCooldown / maxCooldown);
+            var sim = GameSimulation.Instance;
+            float remaining = sim != null
+                ? sim.Skills.GetCooldown(slotIndex)
+                : skillInstance.RemainingCooldown;
+
+            return remaining <= 0f ? 1f : 1f - (remaining / maxCooldown);
         }
     }
 
