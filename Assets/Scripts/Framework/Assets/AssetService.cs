@@ -61,6 +61,41 @@ namespace Framework.Assets
             Debug.Log("[AssetService] 已切换到 AddressableAssetLoader。");
         }
 
+        /// <summary>
+        /// 一键切换到 <see cref="AssetBundleAssetLoader"/>。
+        /// 在 GameManager.Awake() 的最顶部调用，确保在任何 Load 之前生效。
+        /// </summary>
+        /// <param name="bundleRootPath">
+        ///   Bundle 文件根目录。<c>null</c> 时使用
+        ///   <c>Application.streamingAssetsPath/AssetBundles</c>。
+        /// </param>
+        /// <param name="loadManifest">
+        ///   是否自动加载 <see cref="AssetBundleManifest"/> 以启用依赖解析（推荐开启）。
+        /// </param>
+        /// <example>
+        /// <code>
+        ///   // GameManager.Awake()
+        ///   AssetService.UseAssetBundles();                        // 默认路径 + 自动 Manifest
+        ///   AssetService.UseAssetBundles(customPath, false);       // 自定义路径，跳过 Manifest
+        /// </code>
+        /// </example>
+        public static void UseAssetBundles(string bundleRootPath = null, bool loadManifest = true)
+        {
+            AssetBundleManifest manifest = null;
+            if (loadManifest)
+            {
+                string root = string.IsNullOrEmpty(bundleRootPath)
+                    ? System.IO.Path.Combine(UnityEngine.Application.streamingAssetsPath, "AssetBundles")
+                    : bundleRootPath;
+                manifest = AssetBundleAssetLoader.LoadManifest(root);
+            }
+
+            SetLoader(new AssetBundleAssetLoader(bundleRootPath, manifest));
+            Debug.Log($"[AssetService] 已切换到 AssetBundleAssetLoader。" +
+                      $"Root={bundleRootPath ?? "StreamingAssets/AssetBundles"}, " +
+                      $"Manifest={(manifest != null ? "已加载" : "未加载")}");
+        }
+
         // ── 同步加载 ──────────────────────────────────────────────────────────
 
         /// <summary>

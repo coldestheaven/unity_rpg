@@ -3,9 +3,18 @@ namespace Framework.Assets
     /// <summary>
     /// 所有资源路径常量的集中定义。
     ///
+    /// 路径格式因后端而异（切换后端时只需更新此文件，调用方代码不变）：
+    /// <list type="table">
+    ///   <listheader><term>后端</term><description>路径格式示例</description></listheader>
+    ///   <item><term>Resources</term>
+    ///         <description><c>"GameData/GameDataService"</c>（相对 Assets/Resources/）</description></item>
+    ///   <item><term>Addressables</term>
+    ///         <description><c>"GameData/GameDataService"</c>（Addressables Groups 中的 Address 字段）</description></item>
+    ///   <item><term>AssetBundle</term>
+    ///         <description><c>"data_bundle/GameDataService"</c>（格式：bundleName/assetName）</description></item>
+    /// </list>
+    ///
     /// 规则：
-    ///   • 路径相对于 Assets/Resources/（Resources 后端）
-    ///     或 Addressables 中配置的地址（Addressables 后端）。
     ///   • 按资产类别分嵌套静态类，便于 IDE 自动补全，避免拼写错误。
     ///   • 新增资产时在此处添加常量，不要在业务代码中硬编码字符串。
     /// </summary>
