@@ -51,6 +51,54 @@ namespace Framework.Assets
         }
 
         /// <summary>
+        /// 编辑器下使用 <see cref="EditorSimulatedAssetLoader"/>，
+        /// 无需构建 AssetBundle 即可模拟加载（基于 AssetDatabase）。
+        /// Player 构建中调用此方法会打印错误并回退到 Resources 加载器。
+        /// </summary>
+        /// <param name="verbose">是否打印每次加载的详细日志（调试路径映射时开启）。</param>
+        /// <example>
+        /// <code>
+        ///   // GameManager.Awake()
+        ///   #if UNITY_EDITOR
+        ///       AssetService.UseEditorSimulation();
+        ///   #else
+        ///       AssetService.UseAssetBundles();
+        ///   #endif
+        /// </code>
+        /// </example>
+        public static void UseEditorSimulation(bool verbose = false)
+        {
+#if UNITY_EDITOR
+            SetLoader(new EditorSimulatedAssetLoader(verbose));
+            Debug.Log("[AssetService] 已切换到 EditorSimulatedAssetLoader（AssetDatabase 模拟）。");
+#else
+            Debug.LogError("[AssetService] UseEditorSimulation() 仅限编辑器使用，" +
+                           "已回退到 ResourcesAssetLoader。");
+            SetLoader(new ResourcesAssetLoader());
+#endif
+        }
+
+        /// <summary>
+        /// 根据运行环境自动选择最合适的加载器：
+        /// <list type="bullet">
+        ///   <item>编辑器 → <see cref="EditorSimulatedAssetLoader"/>（AssetDatabase 模拟）</item>
+        ///   <item>Player → <see cref="AssetBundleAssetLoader"/>（真实 AB 加载）</item>
+        /// </list>
+        /// 适合懒得写 <c>#if UNITY_EDITOR</c> 判断的快捷场景。
+        /// </summary>
+        /// <param name="bundleRootPath">
+        ///   Player 下的 Bundle 根目录；<c>null</c> 时使用 StreamingAssets/AssetBundles。
+        /// </param>
+        public static void UseAutoLoader(string bundleRootPath = null)
+        {
+#if UNITY_EDITOR
+            UseEditorSimulation();
+#else
+            UseAssetBundles(bundleRootPath);
+#endif
+        }
+
+        /// <summary>
         /// 一键切换到 <see cref="AddressableAssetLoader"/>。
         /// 需要先安装 com.unity.addressables 包并定义 ADDRESSABLES_ENABLED。
         /// 在 GameManager.Awake() 的最顶部调用，确保在任何 Load 之前生效。
