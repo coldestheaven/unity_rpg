@@ -1,8 +1,9 @@
 using UnityEngine;
 using System;
 using System.Collections.Generic;
-using RPG.Core;
+using Framework.Assets;
 using Framework.Events;
+using RPG.Core;
 
 namespace RPG.Achievements
 {
@@ -37,7 +38,7 @@ namespace RPG.Achievements
 
             if (achievementDatabase == null)
             {
-                achievementDatabase = Resources.Load<AchievementDatabase>("AchievementDatabase");
+                achievementDatabase = AssetService.Load<AchievementDatabase>(AssetPaths.Data.AchievementDatabase);
             }
 
             if (achievementDatabase != null)

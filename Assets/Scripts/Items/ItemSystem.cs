@@ -1,3 +1,4 @@
+using Framework.Assets;
 using UnityEngine;
 
 namespace RPG.Items
@@ -47,7 +48,7 @@ namespace RPG.Items
 
             if (itemDatabase == null)
             {
-                itemDatabase = Resources.Load<ItemDatabase>("ItemDatabase");
+                itemDatabase = AssetService.Load<ItemDatabase>(AssetPaths.Data.ItemDatabase);
             }
         }
 

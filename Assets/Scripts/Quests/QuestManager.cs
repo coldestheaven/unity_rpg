@@ -1,8 +1,9 @@
 using UnityEngine;
 using System;
 using System.Collections.Generic;
-using RPG.Core;
+using Framework.Assets;
 using Framework.Events;
+using RPG.Core;
 
 namespace RPG.Quests
 {
@@ -38,7 +39,7 @@ namespace RPG.Quests
             failedQuests    = new Dictionary<string, QuestInstance>();
 
             if (questDatabase == null)
-                questDatabase = Resources.Load<QuestDatabase>("QuestDatabase");
+                questDatabase = AssetService.Load<QuestDatabase>(AssetPaths.Data.QuestDatabase);
         }
 
         private void SubscribeToEvents()

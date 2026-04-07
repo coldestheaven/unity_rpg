@@ -1,3 +1,4 @@
+using Framework.Assets;
 using Framework.Interfaces;
 using RPG.Achievements;
 using RPG.Buff;
@@ -51,8 +52,8 @@ namespace RPG.Data
             {
                 if (_instance != null) return _instance;
 
-                // 降级：从 Resources 加载
-                _instance = Resources.Load<GameDataService>("GameData/GameDataService");
+                // 降级：通过 AssetService 加载（默认 Resources 后端）
+                _instance = AssetService.Load<GameDataService>(AssetPaths.Data.GameDataService);
                 if (_instance == null)
                     Debug.LogError("[GameDataService] 未找到资产。" +
                                    "请将资产放在 Resources/GameData/GameDataService.asset，" +
