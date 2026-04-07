@@ -8,8 +8,10 @@ namespace Framework.Assets
     /// 全局资源加载服务入口（服务定位器模式）。
     ///
     /// ■ 默认使用 <see cref="ResourcesAssetLoader"/>，无需任何配置即可工作。
-    /// ■ 要切换到 Addressables 或 AssetBundle，在游戏启动时调用
-    ///   <see cref="SetLoader"/> 注入自定义实现，其他代码无需修改。
+    /// ■ 切换到 Addressables：
+    ///   1. Package Manager 安装 com.unity.addressables（1.17+）
+    ///   2. Player Settings → Scripting Define Symbols 添加 ADDRESSABLES_ENABLED
+    ///   3. GameManager.Awake() 中调用 <see cref="UseAddressables"/>
     ///
     /// 用法：
     /// <code>
@@ -19,8 +21,8 @@ namespace Framework.Assets
     ///   // 异步（音频、大型贴图）
     ///   yield return AssetService.LoadAsync&lt;AudioClip&gt;(AssetPaths.Audio.BgmMain, c => _bgm = c);
     ///
-    ///   // 切换实现（游戏初始化时一次性调用）
-    ///   AssetService.SetLoader(new AddressableAssetLoader());
+    ///   // Addressables 预热（Loading 界面使用）
+    ///   yield return AssetService.PreloadAsync(AssetPaths.Audio.BgmMain);
     ///
     ///   // 场景切换后释放
     ///   AssetService.ReleaseAll();
@@ -48,10 +50,22 @@ namespace Framework.Assets
                 "[AssetService] loader 不可为 null。");
         }
 
+        /// <summary>
+        /// 一键切换到 <see cref="AddressableAssetLoader"/>。
+        /// 需要先安装 com.unity.addressables 包并定义 ADDRESSABLES_ENABLED。
+        /// 在 GameManager.Awake() 的最顶部调用，确保在任何 Load 之前生效。
+        /// </summary>
+        public static void UseAddressables()
+        {
+            SetLoader(new AddressableAssetLoader());
+            Debug.Log("[AssetService] 已切换到 AddressableAssetLoader。");
+        }
+
         // ── 同步加载 ──────────────────────────────────────────────────────────
 
         /// <summary>
         /// 同步加载资源。适合 ScriptableObject、配置数据等小型资产。
+        /// Addressables 后端使用 WaitForCompletion()，会短暂阻塞主线程。
         /// </summary>
         public static T Load<T>(string path) where T : UnityEngine.Object
             => Loader.Load<T>(path);
@@ -70,6 +84,21 @@ namespace Framework.Assets
         public static IEnumerator LoadAsync<T>(string path, Action<T> onLoaded)
             where T : UnityEngine.Object
             => Loader.LoadAsync(path, onLoaded);
+
+        // ── 预加载 ───────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// 预加载资源依赖（Addressables CDN 资产下载/缓存；Resources 为空操作）。
+        /// 适合在 Loading 界面提前拉取下一场景所需的远程资产。
+        /// </summary>
+        /// <example>
+        /// <code>
+        ///   // 进入 Loading 界面时预热战斗场景资产
+        ///   yield return AssetService.PreloadAsync(AssetPaths.Audio.BgmCombat, onComplete: null);
+        /// </code>
+        /// </example>
+        public static IEnumerator PreloadAsync(string path, Action onComplete = null)
+            => Loader.PreloadAsync(path, onComplete);
 
         // ── 释放 ─────────────────────────────────────────────────────────────
 

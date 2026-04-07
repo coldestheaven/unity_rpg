@@ -58,5 +58,13 @@ namespace Framework.Assets
         /// Resources 实现触发 <see cref="Resources.UnloadUnusedAssets"/>。
         /// </summary>
         void ReleaseAll();
+
+        /// <summary>
+        /// 预加载资源依赖（主要用于 Addressables CDN 资产的提前下载）。
+        /// Resources 实现为空操作（立即调用 onComplete）。
+        /// </summary>
+        /// <param name="address">资源地址。</param>
+        /// <param name="onComplete">预加载完成后的回调。</param>
+        IEnumerator PreloadAsync(string address, Action onComplete = null);
     }
 }

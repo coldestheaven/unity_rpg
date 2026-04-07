@@ -67,5 +67,13 @@ namespace Framework.Assets
         {
             Resources.UnloadUnusedAssets();
         }
+
+        /// <inheritdoc/>
+        /// <remarks>Resources 系统无需预加载，立即触发回调。</remarks>
+        public IEnumerator PreloadAsync(string address, Action onComplete = null)
+        {
+            onComplete?.Invoke();
+            yield break;
+        }
     }
 }
