@@ -1,7 +1,8 @@
-using UnityEngine;
-using RPG.Core;
-using Gameplay.Combat;
+using Framework.Core.Utils;
 using Framework.Interfaces;
+using Gameplay.Combat;
+using RPG.Core;
+using UnityEngine;
 
 namespace RPG.Skills
 {
@@ -213,18 +214,14 @@ namespace RPG.Skills
 
         private void ApplyAreaDamage()
         {
-            Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, skillData.areaRadius);
-
-            foreach (var hit in hits)
+            int count = PhysicsHelper.OverlapCircle(transform.position, skillData.areaRadius);
+            for (int i = 0; i < count; i++)
             {
-                if (hit.CompareTag("Enemy"))
-                {
-                    IDamageable damageable = hit.GetComponent<IDamageable>();
-                    if (damageable != null)
-                    {
-                        DealDamage(damageable, caster.position, true);
-                    }
-                }
+                var hit = PhysicsHelper.Buffer[i];
+                if (!hit.CompareTag("Enemy")) continue;
+                var damageable = hit.GetComponent<IDamageable>();
+                if (damageable != null)
+                    DealDamage(damageable, caster.position, true);
             }
         }
 
@@ -272,16 +269,15 @@ namespace RPG.Skills
 
         private void ApplyWaveDamage()
         {
-            Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, currentRadius);
-
-            foreach (var hit in hits)
+            int count = PhysicsHelper.OverlapCircle(transform.position, currentRadius);
+            for (int i = 0; i < count; i++)
             {
+                var hit = PhysicsHelper.Buffer[i];
                 if (hit.CompareTag("Enemy"))
                 {
-                    IDamageable damageable = hit.GetComponent<IDamageable>();
+                    var damageable = hit.GetComponent<IDamageable>();
                     if (damageable != null)
                     {
-                        // 根据距离计算伤害
                         float distance = Vector2.Distance(transform.position, hit.transform.position);
                         float damageMultiplier = 1f - (distance / maxRadius);
                         float damage = damagePerSecond * damageMultiplier;
@@ -339,18 +335,14 @@ namespace RPG.Skills
 
         private void ApplyInstantDamage()
         {
-            Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, skillData.areaRadius);
-
-            foreach (var hit in hits)
+            int count = PhysicsHelper.OverlapCircle(transform.position, skillData.areaRadius);
+            for (int i = 0; i < count; i++)
             {
-                if (hit.CompareTag("Enemy"))
-                {
-                    IDamageable damageable = hit.GetComponent<IDamageable>();
-                    if (damageable != null)
-                    {
-                        DealDamage(damageable, caster.position);
-                    }
-                }
+                var hit = PhysicsHelper.Buffer[i];
+                if (!hit.CompareTag("Enemy")) continue;
+                var damageable = hit.GetComponent<IDamageable>();
+                if (damageable != null)
+                    DealDamage(damageable, caster.position);
             }
 
             damageDealt = true;

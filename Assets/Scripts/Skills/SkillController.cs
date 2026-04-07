@@ -1,8 +1,9 @@
 using UnityEngine;
 using System;
-using Gameplay.Combat;
 using Framework.Core.Utils;
 using Framework.Events;
+using Framework.Presentation;
+using Gameplay.Combat;
 using RPG.Simulation;
 
 namespace RPG.Skills
@@ -109,7 +110,7 @@ namespace RPG.Skills
     /// <summary>
     /// 技能控制器 - 管理所有技能
     /// </summary>
-    public class SkillController : MonoBehaviour
+    public class SkillController : MonoBehaviour, IPresentationSkillReceiver
     {
         [Header("技能栏（直接引用）")]
         [Tooltip("直接拖入 SkillData 资产。优先级高于 skillSlotIds。")]
@@ -183,19 +184,19 @@ namespace RPG.Skills
         /// Syncs the authoritative remaining time into the local <see cref="SkillInstance"/>
         /// so existing UI code reading <c>RemainingCooldown</c> remains correct.
         /// </summary>
-        public void ApplyCooldownChanged(int slot, float remaining)
+        public void ApplyCooldownChanged(int slotIndex, float remainingSeconds)
         {
-            if (slot >= 0 && slot < skillInstances?.Length)
-                skillInstances[slot]?.SyncCooldown(remaining);
+            if (slotIndex >= 0 && slotIndex < skillInstances?.Length)
+                skillInstances[slotIndex]?.SyncCooldown(remainingSeconds);
         }
 
         /// <summary>
         /// Applies a mana update received from the logic thread via
         /// <see cref="Framework.Presentation.PresentationDispatcher"/>.
         /// </summary>
-        public void ApplyManaChanged(float current, float max)
+        public void ApplyManaChanged(float currentMana, float maxMana)
         {
-            currentMana = Mathf.RoundToInt(current);
+            this.currentMana = Mathf.RoundToInt(currentMana);
         }
 
         private void InitializeSkills()

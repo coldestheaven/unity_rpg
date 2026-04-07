@@ -120,11 +120,12 @@ namespace RPG.Core
                 uiManager = UIManager.Instance;
 
             // Wire the PresentationDispatcher with references to all presentation services.
+            // 注意：Context 字段现在是接口类型（IPresentationProgressReceiver 等），
+            // 不再直接引用具体游戏类型，保持 Framework 层解耦。
             var dispatcher = GetComponent<PresentationDispatcher>();
             if (dispatcher != null)
             {
                 dispatcher.Context.ProgressManager = progressManager;
-                dispatcher.Context.UIManager       = uiManager;
                 dispatcher.Context.SkillController = FindObjectOfType<RPG.Skills.SkillController>();
             }
 

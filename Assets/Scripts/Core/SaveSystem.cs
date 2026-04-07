@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using System;
+using System.Collections;
 using System.IO;
 using System.Collections.Generic;
 using Framework.Events;
@@ -213,22 +214,45 @@ namespace RPG.Core
                 pc.SetMoveSpeed(stats.moveSpeed);
             }
 
-            // Scene + position (load scene first, then set position)
+            // Scene + position
+            // 修复：LoadScene 为异步操作，旧代码在 LoadScene 调用后立即设置坐标，
+            // 此时新场景尚未完成，玩家对象不存在或位于旧场景，坐标会被丢弃。
+            // 现在改为通过协程等待场景加载完毕后再还原坐标。
             if (DAO.TryRead<PlayerPositionDTO>(slotName, SaveKeys.Position, out var pos))
             {
-                if (!string.IsNullOrEmpty(pos.sceneName) &&
-                    pos.sceneName != SceneManager.GetActiveScene().name)
-                {
-                    SceneManager.LoadScene(pos.sceneName);
-                }
+                bool needsSceneChange = !string.IsNullOrEmpty(pos.sceneName) &&
+                                        pos.sceneName != SceneManager.GetActiveScene().name;
+                var targetPos = new Vector3(pos.posX, pos.posY, pos.posZ);
 
-                if (PlayerController.Instance != null)
-                    PlayerController.Instance.transform.position =
-                        new UnityEngine.Vector3(pos.posX, pos.posY, pos.posZ);
+                if (needsSceneChange)
+                    Instance.StartCoroutine(LoadSceneAndRestorePosition(pos.sceneName, targetPos));
+                else
+                    ApplyPlayerPosition(targetPos);
             }
         }
 
         // ── Helpers ───────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// 异步加载目标场景，等待激活完毕后再还原玩家坐标。
+        /// 必须在 MonoBehaviour 上通过 StartCoroutine 调用。
+        /// </summary>
+        private static IEnumerator LoadSceneAndRestorePosition(string sceneName, Vector3 position)
+        {
+            var op = SceneManager.LoadSceneAsync(sceneName);
+            op.allowSceneActivation = true;
+            yield return op;   // 等待场景完全加载并激活
+            ApplyPlayerPosition(position);
+        }
+
+        private static void ApplyPlayerPosition(Vector3 position)
+        {
+            var pc = PlayerController.Instance;
+            if (pc != null)
+                pc.transform.position = position;
+            else
+                Debug.LogWarning("[SaveSystem] 场景加载完毕但 PlayerController 未找到，无法还原坐标。");
+        }
 
         private static string NormaliseSlotName(string name, string fallback = null)
         {

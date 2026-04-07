@@ -29,9 +29,17 @@ namespace Framework.Events
         private static readonly List<Delegate>[] _handlers =
             new List<Delegate>[(int)GameEventId._Count];
 
-        // 静态分发缓冲区 — 重用，避免每次 Publish 分配数组。
-        // 当订阅数超出容量时才会触发一次扩容分配，之后保持稳定。
+        // ── 重入安全分发缓冲区 ─────────────────────────────────────────────────
+        //
+        // 问题：若处理器 A 在执行时调用 Publish(eventB)，将覆写同一个 _dispatchBuffer，
+        //       破坏外层循环的快照。
+        //
+        // 方案：维护调用深度计数器 _depth。
+        //   • 深度 0（常路径）：直接使用共享静态缓冲区，零额外分配。
+        //   • 深度 ≥ 1（重入路径）：分配临时缓冲区，用后置 null，允许 GC。
+        //     重入在业务代码中极少发生，偶发一次分配可接受。
         private static Delegate[] _dispatchBuffer = new Delegate[16];
+        private static int        _dispatchDepth;
 
         // ── Subscribe / Unsubscribe ───────────────────────────────────────────
 
@@ -57,8 +65,9 @@ namespace Framework.Events
         /// <summary>
         /// 向所有当前订阅者分发事件。
         /// <paramref name="evt"/> 以 <c>in</c> 传递（按引用，不复制）。
-        /// 分发前将处理器列表快照到静态缓冲区，允许处理器内部调用 Unsubscribe。
+        /// 分发前将处理器列表快照到缓冲区，允许处理器内部调用 Subscribe / Unsubscribe。
         /// 单个处理器抛出的异常不会中断其他处理器。
+        /// 支持重入：处理器内再次调用 Publish 时使用独立临时缓冲区，不影响外层快照。
         /// </summary>
         public static void Publish<TEvent>(in TEvent evt)
             where TEvent : struct, IGameEvent
@@ -67,18 +76,30 @@ namespace Framework.Events
             if (list == null || list.Count == 0) return;
 
             int count = list.Count;
+            _dispatchDepth++;
 
-            // 按需扩容，保持 2x 冗余；正常情况下不分配。
-            if (_dispatchBuffer.Length < count)
-                _dispatchBuffer = new Delegate[count * 2];
+            // 常路径（深度 = 1）：使用共享静态缓冲区，零分配。
+            // 重入路径（深度 > 1）：分配临时缓冲区，隔离外层快照。
+            Delegate[] buffer;
+            bool isReentrant = _dispatchDepth > 1;
+            if (isReentrant)
+            {
+                buffer = new Delegate[count];
+            }
+            else
+            {
+                if (_dispatchBuffer.Length < count)
+                    _dispatchBuffer = new Delegate[count * 2];
+                buffer = _dispatchBuffer;
+            }
 
-            list.CopyTo(_dispatchBuffer, 0);
+            list.CopyTo(buffer, 0);
 
             for (int i = 0; i < count; i++)
             {
                 try
                 {
-                    ((Action<TEvent>)_dispatchBuffer[i]).Invoke(evt);
+                    ((Action<TEvent>)buffer[i]).Invoke(evt);
                 }
                 catch (Exception e)
                 {
@@ -86,9 +107,11 @@ namespace Framework.Events
                 }
                 finally
                 {
-                    _dispatchBuffer[i] = null;   // 清除引用，避免 GC 根泄漏
+                    buffer[i] = null;   // 清除引用，避免 GC 根泄漏
                 }
             }
+
+            _dispatchDepth--;
         }
 
         // ── Query ─────────────────────────────────────────────────────────────

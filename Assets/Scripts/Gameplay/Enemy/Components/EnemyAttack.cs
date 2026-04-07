@@ -1,4 +1,5 @@
 using System.Collections;
+using Framework.Core.Utils;
 using Gameplay.Combat;
 using UnityEngine;
 
@@ -30,22 +31,14 @@ namespace Gameplay.Enemy
                 CombatDamageType.Physical,
                 CombatHitKind.Attack);
 
-            Collider2D[] hits = Physics2D.OverlapCircleAll(origin, attackRange, targetLayer);
-
-            foreach (var hit in hits)
+            int count = PhysicsHelper.OverlapCircle(origin, attackRange, targetLayer);
+            for (int i = 0; i < count; i++)
             {
-                if (hit == null)
-                {
-                    continue;
-                }
+                var hit = PhysicsHelper.Buffer[i];
+                if (hit == null) continue;
 
-                if (CombatResolver.TryApplyDamage(hit, damageInfo))
-                {
-                    if (hitEffect != null)
-                    {
-                        Instantiate(hitEffect, hit.transform.position, Quaternion.identity);
-                    }
-                }
+                if (CombatResolver.TryApplyDamage(hit, damageInfo) && hitEffect != null)
+                    Instantiate(hitEffect, hit.transform.position, Quaternion.identity);
             }
 
             StartCoroutine(FinishAfterDelay());

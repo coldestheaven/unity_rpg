@@ -1,5 +1,6 @@
-using UnityEngine;
+using Framework.Core.Utils;
 using Gameplay.Combat;
+using UnityEngine;
 
 namespace Gameplay.Player
 {
@@ -48,12 +49,9 @@ namespace Gameplay.Player
                 CombatDamageType.Physical,
                 CombatHitKind.Attack);
 
-            Collider2D[] hitEnemies = Physics2D.OverlapCircleAll(attackPoint.position, attackRange, enemyLayer);
-
-            foreach (Collider2D enemy in hitEnemies)
-            {
-                CombatResolver.TryApplyDamage(enemy, damageInfo);
-            }
+            int count = PhysicsHelper.OverlapCircle(attackPoint.position, attackRange, enemyLayer);
+            for (int i = 0; i < count; i++)
+                CombatResolver.TryApplyDamage(PhysicsHelper.Buffer[i], damageInfo);
 
             OnAttack?.Invoke(baseDamage);
         }

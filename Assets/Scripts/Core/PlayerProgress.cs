@@ -1,6 +1,7 @@
 using UnityEngine;
 using System;
 using Framework.Events;
+using Framework.Presentation;
 using RPG.Simulation;
 
 namespace RPG.Core
@@ -48,7 +49,7 @@ namespace RPG.Core
     /// 调用方通过 <see cref="AddExperience"/> / <see cref="AddGold"/> 向逻辑线程提交工作；
     /// 结果由 Dispatcher 在下一帧异步回写，主线程无阻塞等待。
     /// </summary>
-    public class PlayerProgressManager : Singleton<PlayerProgressManager>
+    public class PlayerProgressManager : Singleton<PlayerProgressManager>, IPresentationProgressReceiver
     {
         // 主线程只读快照 — 仅在 Apply* 方法中写入，无需加锁
         public PlayerProgress Progress { get; private set; }
