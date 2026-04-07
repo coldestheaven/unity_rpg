@@ -69,5 +69,12 @@ namespace Framework.Assets
             public const string InventoryPanel = "UI/InventoryPanel";
             public const string GameOverPanel  = "UI/GameOverPanel";
         }
+
+        // ── 图形 / Shader ─────────────────────────────────────────────────────
+        public static class Graphics
+        {
+            /// <summary>Shader Warmup 配置资产（ShaderWarmupConfig.asset）。</summary>
+            public const string ShaderWarmupConfig = "Graphics/ShaderWarmupConfig";
+        }
     }
 }
