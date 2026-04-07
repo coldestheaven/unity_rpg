@@ -1,3 +1,4 @@
+using Framework.Core.Utils;
 using UnityEngine;
 
 namespace Gameplay.Enemy
@@ -60,11 +61,11 @@ namespace Gameplay.Enemy
 
         private void DetectPlayer()
         {
-            Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, detectionRange, playerLayer);
+            int count = PhysicsHelper.OverlapCircle(transform.position, detectionRange, playerLayer);
 
-            if (hits.Length > 0)
+            if (count > 0)
             {
-                player = GetClosestTarget(hits);
+                player = GetClosestTarget(count);
                 enemyAI?.SetTarget(player);
             }
             else
@@ -74,17 +75,15 @@ namespace Gameplay.Enemy
             }
         }
 
-        private GameObject GetClosestTarget(Collider2D[] hits)
+        private GameObject GetClosestTarget(int hitCount)
         {
             GameObject bestTarget = null;
             float bestDistance = float.MaxValue;
 
-            foreach (var hit in hits)
+            for (int i = 0; i < hitCount; i++)
             {
-                if (hit == null)
-                {
-                    continue;
-                }
+                var hit = PhysicsHelper.Buffer[i];
+                if (hit == null) continue;
 
                 float distance = Vector2.Distance(transform.position, hit.transform.position);
                 if (distance < bestDistance)

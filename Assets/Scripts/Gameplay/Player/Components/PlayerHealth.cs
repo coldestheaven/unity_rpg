@@ -1,12 +1,15 @@
 using UnityEngine;
 using Gameplay.Combat;
+using RPG.Simulation;
 
 namespace Gameplay.Player
 {
     /// <summary>
-    /// 玩家健康系统
+    /// 玩家健康系统。
+    /// 实现 <see cref="IInvincible"/> 使逻辑线程上的 <c>EntityCombatSnapshot</c>
+    /// 能正确读取无敌状态，防止受击帧期间逻辑线程再次施加伤害。
     /// </summary>
-    public class PlayerHealth : DamageableBase
+    public class PlayerHealth : DamageableBase, IInvincible
     {
         [Header("Damage")]
         [SerializeField] private float invincibilityTime = 1f;

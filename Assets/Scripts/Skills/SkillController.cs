@@ -1,6 +1,7 @@
 using UnityEngine;
 using System;
 using Gameplay.Combat;
+using Framework.Core.Utils;
 using Framework.Events;
 using RPG.Simulation;
 
@@ -404,8 +405,6 @@ namespace RPG.Skills
 
         private void ApplySkillDamage(SkillData skillData, int skillLevel)
         {
-            // 根据目标类型寻找目标
-            Collider2D[] targets = FindTargets(skillData);
             DamageInfo damageInfo = new DamageInfo(
                 skillData.GetDamage(skillLevel),
                 transform.position,
@@ -413,30 +412,36 @@ namespace RPG.Skills
                 CombatDamageTypeMapper.FromSkillDamageType(skillData.damageType),
                 CombatHitKind.Skill);
 
-            foreach (var target in targets)
+            int count = FindTargets(skillData);
+            if (skillData.targetType == SkillTargetType.Self)
             {
-                CombatResolver.TryApplyDamage(target, damageInfo);
+                // Self-target：直接对自身施加
+                CombatResolver.TryApplyDamage(GetComponent<Collider2D>(), damageInfo);
+                return;
             }
+
+            for (int i = 0; i < count; i++)
+                CombatResolver.TryApplyDamage(PhysicsHelper.Buffer[i], damageInfo);
         }
 
-        private Collider2D[] FindTargets(SkillData skillData)
+        /// <summary>
+        /// 查找技能目标，将结果写入 <see cref="PhysicsHelper.Buffer"/>。
+        /// 返回命中数量；对 <see cref="SkillTargetType.Self"/> 返回 0（调用方直接处理）。
+        /// </summary>
+        private int FindTargets(SkillData skillData)
         {
             LayerMask targetLayer = LayerMask.GetMask("Enemy");
 
             switch (skillData.targetType)
             {
                 case SkillTargetType.Enemy:
-                    return Physics2D.OverlapCircleAll(transform.position, skillData.range, targetLayer);
-
-                case SkillTargetType.Self:
-                    return new Collider2D[] { GetComponent<Collider2D>() };
+                    return PhysicsHelper.OverlapCircle(transform.position, skillData.range, targetLayer);
 
                 case SkillTargetType.Area:
-                    // 需要指定区域中心
-                    return Physics2D.OverlapCircleAll(transform.position, skillData.areaRadius, targetLayer);
+                    return PhysicsHelper.OverlapCircle(transform.position, skillData.areaRadius, targetLayer);
 
                 default:
-                    return new Collider2D[0];
+                    return 0;
             }
         }
 

@@ -14,11 +14,21 @@ namespace Framework.Utils
             return component;
         }
 
+        /// <summary>
+        /// 销毁所有子物体。运行时使用异步 <c>Object.Destroy</c>；
+        /// 编辑器非播放模式下回退至 <c>DestroyImmediate</c>（使序列化立即更新）。
+        /// </summary>
         public static void DestroyAllChildren(this Transform transform)
         {
             for (int i = transform.childCount - 1; i >= 0; i--)
             {
-                Object.DestroyImmediate(transform.GetChild(i).gameObject);
+                var child = transform.GetChild(i).gameObject;
+#if UNITY_EDITOR
+                if (!Application.isPlaying)
+                    Object.DestroyImmediate(child);
+                else
+#endif
+                    Object.Destroy(child);
             }
         }
 

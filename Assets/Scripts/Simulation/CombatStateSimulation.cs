@@ -155,8 +155,19 @@ namespace RPG.Simulation
                     _activeDoTs.Add(effect);
                 _pendingAdd.Clear();
 
-                foreach (var id in _pendingRemove)
-                    _activeDoTs.RemoveAll(e => e.Id == id);
+                // 无 lambda / RemoveAll 分配：倒序遍历，O(n) swap-remove
+                for (int ri = 0; ri < _pendingRemove.Count; ri++)
+                {
+                    string removeId = _pendingRemove[ri];
+                    for (int di = _activeDoTs.Count - 1; di >= 0; di--)
+                    {
+                        if (_activeDoTs[di].Id == removeId)
+                        {
+                            _activeDoTs[di] = _activeDoTs[_activeDoTs.Count - 1];
+                            _activeDoTs.RemoveAt(_activeDoTs.Count - 1);
+                        }
+                    }
+                }
                 _pendingRemove.Clear();
             }
 

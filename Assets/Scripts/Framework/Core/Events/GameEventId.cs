@@ -63,6 +63,11 @@ namespace Framework.Events
         // ── Combat / Health ─────────────────────────
         HealthChanged,
 
+        // ── Player Vitals (UI-facing, main-thread) ───
+        PlayerHealthChanged,        // current HP, max HP
+        PlayerManaChanged,          // current mana, max mana
+        PlayerSkillCooldownChanged, // slot index, remaining seconds
+
         /// <summary>哨兵值，用于 EventBus 内部数组定长，请勿使用。</summary>
         _Count
     }

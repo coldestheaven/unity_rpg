@@ -328,4 +328,48 @@ namespace Framework.Events
             CurrentHealth = current; MaxHealth = max; Entity = entity;
         }
     }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Player Vitals (UI-facing, raised on main thread)
+    // ──────────────────────────────────────────────────────────────────────────
+
+    /// <summary>玩家当前/最大 HP 发生变化时发布（主线程）。</summary>
+    public readonly struct PlayerHealthChangedEvent : IGameEvent
+    {
+        public GameEventId EventId => GameEventId.PlayerHealthChanged;
+        public readonly float CurrentHealth;
+        public readonly float MaxHealth;
+        public PlayerHealthChangedEvent(float current, float max)
+        {
+            CurrentHealth = current; MaxHealth = max;
+        }
+    }
+
+    /// <summary>玩家当前/最大 MP 发生变化时发布（主线程）。</summary>
+    public readonly struct PlayerManaChangedEvent : IGameEvent
+    {
+        public GameEventId EventId => GameEventId.PlayerManaChanged;
+        public readonly float CurrentMana;
+        public readonly float MaxMana;
+        public PlayerManaChangedEvent(float current, float max)
+        {
+            CurrentMana = current; MaxMana = max;
+        }
+    }
+
+    /// <summary>某技能槽冷却剩余秒数变化时发布（主线程）。</summary>
+    public readonly struct PlayerSkillCooldownChangedEvent : IGameEvent
+    {
+        public GameEventId EventId => GameEventId.PlayerSkillCooldownChanged;
+        /// <summary>技能槽索引（0-based）。</summary>
+        public readonly int   SlotIndex;
+        /// <summary>剩余冷却时间（秒）；0 表示已就绪。</summary>
+        public readonly float RemainingSeconds;
+        /// <summary>总冷却时间（秒），用于计算进度百分比。</summary>
+        public readonly float TotalCooldown;
+        public PlayerSkillCooldownChangedEvent(int slot, float remaining, float total)
+        {
+            SlotIndex = slot; RemainingSeconds = remaining; TotalCooldown = total;
+        }
+    }
 }
