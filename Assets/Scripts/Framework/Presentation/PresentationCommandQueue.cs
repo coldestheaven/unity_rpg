@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using Framework.Diagnostics;
 
 namespace Framework.Presentation
 {
@@ -24,7 +25,10 @@ namespace Framework.Presentation
         /// Enqueues a command. Thread-safe; call from any thread.
         /// </summary>
         public static void Enqueue(in PresentationCommand command)
-            => _queue.Enqueue(command);
+        {
+            using var _ = ProfilerMarkers.PCQ_Enqueue.Auto();
+            _queue.Enqueue(command);
+        }
 
         /// <summary>
         /// Attempts to dequeue the next command.

@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using Framework.Diagnostics;
+using Unity.Profiling;
 using UnityEngine;
 
 namespace Framework.Events
@@ -72,6 +74,8 @@ namespace Framework.Events
         public static void Publish<TEvent>(in TEvent evt)
             where TEvent : struct, IGameEvent
         {
+            using var _pm = ProfilerMarkers.EventBus_Publish.Auto();
+
             var list = _handlers[(int)evt.EventId];
             if (list == null || list.Count == 0) return;
 

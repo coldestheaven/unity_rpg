@@ -1,3 +1,4 @@
+using Framework.Diagnostics;
 using UnityEngine;
 
 namespace Framework.Presentation
@@ -25,6 +26,9 @@ namespace Framework.Presentation
 
         private void Update()
         {
+            if (PresentationCommandQueue.Count == 0) return;
+
+            using var _pm = ProfilerMarkers.PCQ_Flush.Auto();
             while (PresentationCommandQueue.TryDequeue(out PresentationCommand cmd))
             {
                 try

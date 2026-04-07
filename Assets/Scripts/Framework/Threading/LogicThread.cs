@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Threading;
+using Framework.Diagnostics;
 using UnityEngine;
 
 namespace Framework.Threading
@@ -80,7 +81,9 @@ namespace Framework.Threading
                     // even when the queue is empty.
                     if (_workQueue.TryTake(out Action work, millisecondsTimeout: 100))
                     {
+                        ProfilerMarkers.LogicThread_WorkItem.Begin();
                         work();
+                        ProfilerMarkers.LogicThread_WorkItem.End();
                     }
                 }
                 catch (InvalidOperationException)
