@@ -65,6 +65,23 @@ namespace Framework.Core.Pools
             return new PooledList<T>(list);
         }
 
+        // ── 预分配 ───────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// 预先向池中压入 <paramref name="count"/> 个空 List 实例。
+        /// 适合在 Loading 界面调用，避免游戏中首次 Get 时触发 GC 分配。
+        /// </summary>
+        /// <param name="count">要预分配的数量（超过 MaxPoolSize 的部分会被忽略）。</param>
+        public static void Warmup(int count)
+        {
+            lock (_pool)
+            {
+                int toAdd = System.Math.Min(count, MaxPoolSize - _pool.Count);
+                for (int i = 0; i < toAdd; i++)
+                    _pool.Push(new List<T>(16));
+            }
+        }
+
         // ── 调试 ─────────────────────────────────────────────────────────────
 
         /// <summary>当前池中空闲的 List 数量。</summary>

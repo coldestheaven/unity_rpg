@@ -102,6 +102,29 @@ namespace Framework.Core.Pools
             // 池满则直接丢弃，由 GC 回收
         }
 
+        // ── 预分配 ───────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// 预先向对应桶中压入 <paramref name="count"/> 个长度 ≥ <paramref name="minimumLength"/>
+        /// 的数组实例。适合在 Loading 界面调用，避免游戏中首次 Rent 触发 GC。
+        /// </summary>
+        /// <param name="minimumLength">数组的最小长度（会向上取整到桶的实际长度）。</param>
+        /// <param name="count">要预分配的数量（超过 MaxArraysPerBucket 的部分会被忽略）。</param>
+        public void Warmup(int minimumLength, int count)
+        {
+            if (minimumLength <= 0 || count <= 0) return;
+
+            int bucketIdx = SelectBucket(minimumLength);
+            if (bucketIdx >= MaxBuckets) return;   // 超大数组不预热
+
+            var bucket = _buckets[bucketIdx] ??= new Stack<T[]>(MaxArraysPerBucket);
+            int toAdd  = Math.Min(count, MaxArraysPerBucket - bucket.Count);
+            int len    = BucketLength(bucketIdx);
+
+            for (int i = 0; i < toAdd; i++)
+                bucket.Push(new T[len]);
+        }
+
         // ── 调试 ─────────────────────────────────────────────────────────────
 
         /// <summary>打印各桶空闲数量（仅供调试）。</summary>

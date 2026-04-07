@@ -78,6 +78,22 @@ namespace Framework.Core.Pools
             return new PooledStringBuilder(sb);
         }
 
+        // ── 预分配 ───────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// 预先向池中压入 <paramref name="count"/> 个空 StringBuilder 实例。
+        /// 适合在 Loading 界面调用，避免游戏中首次 Get 时触发 GC 分配。
+        /// </summary>
+        public static void Warmup(int count)
+        {
+            lock (_pool)
+            {
+                int toAdd = System.Math.Min(count, MaxPoolSize - _pool.Count);
+                for (int i = 0; i < toAdd; i++)
+                    _pool.Push(new StringBuilder(DefaultCapacity));
+            }
+        }
+
         // ── 调试 ─────────────────────────────────────────────────────────────
 
         /// <summary>当前池中空闲的 StringBuilder 数量。</summary>

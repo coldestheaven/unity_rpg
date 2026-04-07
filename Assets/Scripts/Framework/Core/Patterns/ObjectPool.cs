@@ -74,6 +74,24 @@ namespace Framework.Core.Patterns
             }
         }
 
+        // ── 预分配 ───────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// 追加预分配 <paramref name="count"/> 个实例到池中。
+        /// 构造时已通过 <c>initialSize</c> 预热的无需重复调用；
+        /// 此方法适合运行时（如 Loading 界面）动态补充容量。
+        /// 超出 <c>maxSize</c> 的部分会被忽略。
+        /// </summary>
+        public void Warmup(int count)
+        {
+            int toAdd = Mathf.Min(count, _maxSize - _pool.Count);
+            for (int i = 0; i < toAdd; i++)
+            {
+                _pool.Push(_createFunc());
+                CountAll++;
+            }
+        }
+
         // ── 核心 API ─────────────────────────────────────────────────────────
 
         /// <summary>
