@@ -272,8 +272,13 @@ namespace RPG.Skills
 
                 // Commit authoritative state change on the logic thread.
                 // TryActivate is atomic and re-validates internally.
+                // 如果队列已满（返回 false），跳过执行，避免"白打"技能。
                 int capturedSlot = slotIndex;
-                sim.EnqueueWork(() => sim.Skills.TryActivate(capturedSlot, cooldownDuration, manaCost));
+                if (!sim.EnqueueWork(() => sim.Skills.TryActivate(capturedSlot, cooldownDuration, manaCost)))
+                {
+                    Debug.LogWarning("[SkillController] Logic thread queue full — skill cast skipped.");
+                    return false;
+                }
             }
             else
             {

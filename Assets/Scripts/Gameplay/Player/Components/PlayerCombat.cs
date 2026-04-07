@@ -42,6 +42,12 @@ namespace Gameplay.Player
 
         private void PerformAttack()
         {
+            if (attackPoint == null)
+            {
+                Debug.LogWarning("[PlayerCombat] attackPoint 未在 Inspector 中赋值，攻击跳过。", this);
+                return;
+            }
+
             DamageInfo damageInfo = new DamageInfo(
                 baseDamage,
                 transform.position,

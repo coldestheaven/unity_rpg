@@ -230,9 +230,10 @@ namespace RPG.Simulation
                 }
             }
 
-            // hitKind = 3 = CombatHitKind.DamageOverTime (avoid Gameplay.Combat enum coupling here)
             PresentationCommandQueue.Enqueue(PresentationCommand.DamageResolved(
-                _entityId, finalAmount, newHP, 0f, 0f, 0f, 0, 3));
+                _entityId, finalAmount, newHP, 0f, 0f, 0f,
+                (int)CombatDamageType.Physical,
+                (int)CombatHitKind.DamageOverTime));
 
             if (died)
             {

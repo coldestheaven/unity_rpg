@@ -40,12 +40,13 @@ namespace Gameplay.Player
 
         public override void Revive(float healthPercent = 1f)
         {
+            // 先处理本类独有的状态，再委托给基类。
+            // 基类 Revive 负责：设置 IsDead=false、更新 currentHealth、
+            // 同步 _healthSim.Restore（修复：旧代码不调 base 导致逻辑线程 HP 仍为死亡状态）、
+            // 触发 NotifyHealthChanged 和 OnRevived。
             StopAllCoroutines();
             isInvincible = false;
-            IsDead = false;
-            currentHealth = Mathf.Clamp(maxHealth * healthPercent, 1f, maxHealth);
-            NotifyHealthChanged();
-            OnRevived();
+            base.Revive(healthPercent);
         }
 
         public override void ResetHealth()
@@ -96,6 +97,11 @@ namespace Gameplay.Player
 
         protected override void OnDamageTaken(float damage, DamageInfo damageInfo)
         {
+            // DoT（持续伤害）不产生击退和无敌帧：
+            //   - 击退 (0,0,0) 来源 → ApplyKnockback 内部已做 default 跳过判断
+            //   - 但无敌帧需要在这里显式排除，否则每个 DoT tick 都会重置无敌计时
+            if (damageInfo.HitKind == CombatHitKind.DamageOverTime) return;
+
             ApplyKnockback(damageInfo.SourcePosition);
             PlayHitEffect();
             StartCoroutine(InvincibilityCoroutine());
