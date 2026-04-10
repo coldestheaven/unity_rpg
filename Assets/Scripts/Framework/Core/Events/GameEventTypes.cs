@@ -411,4 +411,100 @@ namespace Framework.Events
             SlotIndex = slot; RemainingSeconds = remaining; TotalCooldown = total;
         }
     }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Scene
+    // ──────────────────────────────────────────────────────────────────────────
+
+    public readonly struct SceneLoadStartedEvent : IGameEvent
+    {
+        public GameEventId EventId => GameEventId.SceneLoadStarted;
+        public readonly string SceneName;
+        public readonly string TransitionType;
+        public SceneLoadStartedEvent(string scene, string transition = "fade")
+        {
+            SceneName = scene; TransitionType = transition;
+        }
+    }
+
+    public readonly struct SceneLoadCompletedEvent : IGameEvent
+    {
+        public GameEventId EventId => GameEventId.SceneLoadCompleted;
+        public readonly string SceneName;
+        public SceneLoadCompletedEvent(string scene) { SceneName = scene; }
+    }
+
+    public readonly struct SceneUnloadedEvent : IGameEvent
+    {
+        public GameEventId EventId => GameEventId.SceneUnloaded;
+        public readonly string SceneName;
+        public SceneUnloadedEvent(string scene) { SceneName = scene; }
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Pickup
+    // ──────────────────────────────────────────────────────────────────────────
+
+    public readonly struct PickupSpawnedEvent : IGameEvent
+    {
+        public GameEventId EventId => GameEventId.PickupSpawned;
+        public readonly string ItemId;
+        public readonly int    Quantity;
+        public readonly UnityEngine.Vector3 Position;
+        public PickupSpawnedEvent(string id, int qty, UnityEngine.Vector3 pos)
+        {
+            ItemId = id; Quantity = qty; Position = pos;
+        }
+    }
+
+    public readonly struct PickupCollectedEvent : IGameEvent
+    {
+        public GameEventId EventId => GameEventId.PickupCollected;
+        public readonly string ItemId;
+        public readonly string ItemName;
+        public readonly int    Quantity;
+        public PickupCollectedEvent(string id, string name, int qty)
+        {
+            ItemId = id; ItemName = name; Quantity = qty;
+        }
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Buildings
+    // ──────────────────────────────────────────────────────────────────────────
+
+    public readonly struct BuildingPlacedEvent : IGameEvent
+    {
+        public GameEventId EventId => GameEventId.BuildingPlaced;
+        public readonly string BuildingId;
+        public readonly string InstanceId;
+        public readonly UnityEngine.Vector3 Position;
+        public BuildingPlacedEvent(string buildingId, string instanceId, UnityEngine.Vector3 pos)
+        {
+            BuildingId = buildingId; InstanceId = instanceId; Position = pos;
+        }
+    }
+
+    public readonly struct BuildingDemolishedEvent : IGameEvent
+    {
+        public GameEventId EventId => GameEventId.BuildingDemolished;
+        public readonly string BuildingId;
+        public readonly string InstanceId;
+        public BuildingDemolishedEvent(string buildingId, string instanceId)
+        {
+            BuildingId = buildingId; InstanceId = instanceId;
+        }
+    }
+
+    public readonly struct BuildingPlacementStartedEvent : IGameEvent
+    {
+        public GameEventId EventId => GameEventId.BuildingPlacementStarted;
+        public readonly string BuildingId;
+        public BuildingPlacementStartedEvent(string id) { BuildingId = id; }
+    }
+
+    public readonly struct BuildingPlacementCancelledEvent : IGameEvent
+    {
+        public GameEventId EventId => GameEventId.BuildingPlacementCancelled;
+    }
 }

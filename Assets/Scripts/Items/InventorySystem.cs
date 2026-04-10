@@ -106,6 +106,9 @@ namespace RPG.Items
         public int UsedSlots  => _usedSlots;
         public int EmptySlots => maxSlots - _usedSlots;
 
+        /// <summary>只读视图，供 SaveSystem 等外部系统读取槽位快照。</summary>
+        public IReadOnlyList<InventorySlot> GetAllSlots() => _slots;
+
         // ── 事件 ──────────────────────────────────────────────────────────────────
 
         /// <param name="usedSlots">触发时已使用的槽位数。</param>

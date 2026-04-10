@@ -71,6 +71,21 @@ namespace Framework.Events
         PlayerManaChanged,          // current mana, max mana
         PlayerSkillCooldownChanged, // slot index, remaining seconds
 
+        // ── Scene ───────────────────────────────────
+        SceneLoadStarted,           // scene name, transition type
+        SceneLoadCompleted,         // scene name
+        SceneUnloaded,              // scene name
+
+        // ── Pickup ──────────────────────────────────
+        PickupSpawned,              // world position, item id
+        PickupCollected,            // item id, quantity
+
+        // ── Buildings ───────────────────────────────
+        BuildingPlaced,             // building id, position
+        BuildingDemolished,         // building id, instance id
+        BuildingPlacementStarted,   // building id
+        BuildingPlacementCancelled,
+
         /// <summary>哨兵值，用于 EventBus 内部数组定长，请勿使用。</summary>
         _Count
     }

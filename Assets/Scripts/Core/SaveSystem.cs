@@ -8,6 +8,7 @@ using Framework.Events;
 using Framework.Interfaces;
 using RPG.Data;
 using RPG.Items;
+using RPG.Building;
 using Gameplay.Player;
 
 namespace RPG.Core
@@ -179,6 +180,77 @@ namespace RPG.Core
                     posZ      = pc.transform.position.z
                 });
             }
+
+            // Inventory
+            WriteInventorySlot(slotName);
+
+            // Equipment
+            WriteEquipmentSlot(slotName);
+
+            // Buildings
+            WriteBuildingsSlot(slotName);
+        }
+
+        private void WriteInventorySlot(string slotName)
+        {
+            var itemSys = ItemSystem.Instance;
+            if (itemSys?.inventory == null) return;
+
+            var inv    = itemSys.inventory;
+            var raw    = inv.GetAllSlots();
+            var dtos   = new InventorySlotDTO[raw.Count];
+            for (int i = 0; i < raw.Count; i++)
+            {
+                var s = raw[i];
+                dtos[i] = new InventorySlotDTO
+                {
+                    itemId   = s.IsEmpty ? "" : ResolveItemId(s.itemData),
+                    quantity = s.IsEmpty ? 0  : s.quantity,
+                };
+            }
+            DAO.Write(slotName, SaveKeys.Inventory, new InventoryDTO
+            {
+                gold  = (int)inv.Gold,
+                slots = dtos,
+            });
+        }
+
+        private void WriteEquipmentSlot(string slotName)
+        {
+            var itemSys = ItemSystem.Instance;
+            if (itemSys?.equipment == null) return;
+
+            var equipped = itemSys.equipment.GetAllEquippedItems();
+            var dtos     = new List<EquipmentSlotDTO>(equipped.Count);
+            foreach (var kvp in equipped)
+            {
+                if (kvp.Value == null) continue;
+                dtos.Add(new EquipmentSlotDTO
+                {
+                    slotName = kvp.Key.ToString(),
+                    itemId   = ResolveItemId(kvp.Value),
+                });
+            }
+            DAO.Write(slotName, SaveKeys.Equipment, new EquipmentDTO { slots = dtos.ToArray() });
+        }
+
+        private void WriteBuildingsSlot(string slotName)
+        {
+            var bs = BuildingSystem.Instance;
+            if (bs == null) return;
+
+            var placed = bs.GetAllBuildings();
+            var dtos   = new PlacedBuildingDTO[placed.Length];
+            for (int i = 0; i < placed.Length; i++)
+                dtos[i] = placed[i].ToDTO();
+
+            DAO.Write(slotName, SaveKeys.Buildings, new BuildingsSaveDTO { buildings = dtos });
+        }
+
+        private static string ResolveItemId(Items.ItemData item)
+        {
+            if (item == null) return "";
+            return !string.IsNullOrEmpty(item.itemId) ? item.itemId : item.name;
         }
 
         // ── Internal: read DTOs and apply to live systems ─────────────────────
@@ -214,6 +286,15 @@ namespace RPG.Core
                 pc.SetMoveSpeed(stats.moveSpeed);
             }
 
+            // Inventory
+            ApplyInventorySlot(slotName);
+
+            // Equipment (must run after inventory to avoid double-removing items)
+            ApplyEquipmentSlot(slotName);
+
+            // Buildings
+            ApplyBuildingsSlot(slotName);
+
             // Scene + position
             // 修复：LoadScene 为异步操作，旧代码在 LoadScene 调用后立即设置坐标，
             // 此时新场景尚未完成，玩家对象不存在或位于旧场景，坐标会被丢弃。
@@ -229,6 +310,63 @@ namespace RPG.Core
                 else
                     ApplyPlayerPosition(targetPos);
             }
+        }
+
+        // ── Apply helpers ────────────────────────────────────────────────────
+
+        private void ApplyInventorySlot(string slotName)
+        {
+            var itemSys = ItemSystem.Instance;
+            if (itemSys?.inventory == null) return;
+            if (!DAO.TryRead<InventoryDTO>(slotName, SaveKeys.Inventory, out var dto)) return;
+
+            itemSys.inventory.ClearInventory();
+            if (dto.gold > 0) itemSys.inventory.AddGold(dto.gold);
+
+            var db = itemSys.itemDatabase;
+            if (dto.slots == null || db == null) return;
+
+            foreach (var s in dto.slots)
+            {
+                if (string.IsNullOrEmpty(s.itemId) || s.quantity <= 0) continue;
+                var item = db.GetItem(s.itemId);
+                if (item != null)
+                    itemSys.inventory.AddItem(item, s.quantity);
+                else
+                    Debug.LogWarning($"[SaveSystem] 背包恢复：找不到 itemId='{s.itemId}'，跳过。");
+            }
+        }
+
+        private void ApplyEquipmentSlot(string slotName)
+        {
+            var itemSys = ItemSystem.Instance;
+            if (itemSys?.equipment == null) return;
+            if (!DAO.TryRead<EquipmentDTO>(slotName, SaveKeys.Equipment, out var dto)) return;
+
+            itemSys.equipment.ClearAllEquipment();
+
+            var db = itemSys.itemDatabase;
+            if (dto.slots == null || db == null) return;
+
+            foreach (var s in dto.slots)
+            {
+                if (string.IsNullOrEmpty(s.itemId)) continue;
+                var item = db.GetItem(s.itemId) as Items.EquipmentData;
+                if (item != null)
+                    itemSys.equipment.EquipItem(item);
+                else
+                    Debug.LogWarning($"[SaveSystem] 装备恢复：找不到 itemId='{s.itemId}'，跳过。");
+            }
+        }
+
+        private void ApplyBuildingsSlot(string slotName)
+        {
+            var bs = BuildingSystem.Instance;
+            if (bs == null) return;
+            if (!DAO.TryRead<BuildingsSaveDTO>(slotName, SaveKeys.Buildings, out var dto)) return;
+
+            bs.ClearAllBuildings();
+            bs.RestoreFromDTOs(dto.buildings ?? Array.Empty<PlacedBuildingDTO>());
         }
 
         // ── Helpers ───────────────────────────────────────────────────────────
