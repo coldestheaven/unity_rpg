@@ -18,5 +18,16 @@ namespace Framework.Graphics.URP
         // ── 全屏淡化（Fade） ────────────────────────────────────────────────────
         internal static readonly int FadeColor       = Shader.PropertyToID("_FadeColor");
         internal static readonly int FadeAlpha       = Shader.PropertyToID("_FadeAlpha");
+
+        // ── 受击闪光（HitFlash） ────────────────────────────────────────────────
+        internal static readonly int FlashColor      = Shader.PropertyToID("_FlashColor");
+        internal static readonly int FlashIntensity  = Shader.PropertyToID("_FlashIntensity");
+
+        // ── 屏幕扰曲（ScreenDistortion） ────────────────────────────────────────
+        internal static readonly int DistortionSourceTex  = Shader.PropertyToID("_SourceTex");
+        internal static readonly int DistortionCenter     = Shader.PropertyToID("_DistortionCenter");
+        internal static readonly int DistortionStrength   = Shader.PropertyToID("_DistortionStrength");
+        internal static readonly int DistortionRadius     = Shader.PropertyToID("_DistortionRadius");
+        internal static readonly int DistortionRingWidth  = Shader.PropertyToID("_DistortionRingWidth");
     }
 }
