@@ -2,6 +2,7 @@ using UnityEngine;
 using System;
 using System.Collections.Generic;
 using Framework.Assets;
+using Framework.Core.Pools;
 using Framework.Events;
 using RPG.Core;
 
@@ -18,7 +19,17 @@ namespace RPG.Quests
 
         public int ActiveQuestCount    => activeQuests.Count;
         public int CompletedQuestCount => completedQuests.Count;
-        public QuestInstance[] ActiveQuests => new List<QuestInstance>(activeQuests.Values).ToArray();
+        public QuestInstance[] ActiveQuests
+        {
+            get
+            {
+                using (ListPool<QuestInstance>.Rent(out var tmp))
+                {
+                    tmp.AddRange(activeQuests.Values);
+                    return tmp.ToArray();
+                }
+            }
+        }
 
         public event Action<QuestInstance>                  OnQuestStarted;
         public event Action<QuestInstance>                  OnQuestCompleted;
@@ -234,13 +245,13 @@ namespace RPG.Quests
 
         public QuestData[] GetAvailableQuests()
         {
-            var available = new List<QuestData>();
-            if (questDatabase != null)
+            using (ListPool<QuestData>.Rent(out var available))
             {
-                foreach (var qd in questDatabase.GetAllQuests())
-                    if (IsQuestAvailable(qd)) available.Add(qd);
+                if (questDatabase != null)
+                    foreach (var qd in questDatabase.GetAllQuests())
+                        if (IsQuestAvailable(qd)) available.Add(qd);
+                return available.ToArray();
             }
-            return available.ToArray();
         }
 
         private bool IsQuestAvailable(QuestData questData)

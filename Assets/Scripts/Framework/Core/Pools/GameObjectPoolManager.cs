@@ -180,12 +180,14 @@ namespace Framework.Core.Pools
         {
             if (!_pools.TryGetValue(prefab, out var pool)) return;
 
-            var toRelease = new List<GameObject>(_activeToPool.Count);
-            foreach (var kv in _activeToPool)
-                if (kv.Value == pool) toRelease.Add(kv.Key);
+            using (ListPool<GameObject>.Rent(out var toRelease))
+            {
+                foreach (var kv in _activeToPool)
+                    if (kv.Value == pool) toRelease.Add(kv.Key);
 
-            foreach (var obj in toRelease)
-                Release(obj);
+                foreach (var obj in toRelease)
+                    Release(obj);
+            }
         }
 
         /// <summary>
@@ -197,13 +199,15 @@ namespace Framework.Core.Pools
             if (!_pools.TryGetValue(prefab, out var pool)) return;
 
             // 移除活跃追踪
-            var toRemove = new List<GameObject>(8);
-            foreach (var kv in _activeToPool)
-                if (kv.Value == pool) toRemove.Add(kv.Key);
-            foreach (var obj in toRemove)
+            using (ListPool<GameObject>.Rent(out var toRemove))
             {
-                _activeToPool.Remove(obj);
-                Destroy(obj);
+                foreach (var kv in _activeToPool)
+                    if (kv.Value == pool) toRemove.Add(kv.Key);
+                foreach (var obj in toRemove)
+                {
+                    _activeToPool.Remove(obj);
+                    Destroy(obj);
+                }
             }
 
             // 销毁容器节点（级联销毁所有空闲子物体）
@@ -216,9 +220,12 @@ namespace Framework.Core.Pools
         /// <summary>销毁所有池（场景切换时调用）。</summary>
         public void ClearAll()
         {
-            var prefabs = new List<GameObject>(_pools.Keys);
-            foreach (var p in prefabs)
-                DestroyPool(p);
+            using (ListPool<GameObject>.Rent(out var prefabs))
+            {
+                prefabs.AddRange(_pools.Keys);
+                foreach (var p in prefabs)
+                    DestroyPool(p);
+            }
         }
 
         // ── 调试 ─────────────────────────────────────────────────────────────

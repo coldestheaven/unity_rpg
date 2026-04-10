@@ -2,6 +2,7 @@ using UnityEngine;
 using System;
 using System.Collections.Generic;
 using Core.Stats;
+using Framework.Core.Pools;
 using Framework.Events;
 
 namespace RPG.Items
@@ -210,19 +211,14 @@ namespace RPG.Items
         /// </summary>
         public void ClearAllEquipment()
         {
-            List<EquipmentSlot> slotsToClear = new List<EquipmentSlot>();
-
-            foreach (var pair in equippedItems)
+            using (ListPool<EquipmentSlot>.Rent(out var slotsToClear))
             {
-                if (pair.Value != null)
-                {
-                    slotsToClear.Add(pair.Key);
-                }
-            }
+                foreach (var pair in equippedItems)
+                    if (pair.Value != null)
+                        slotsToClear.Add(pair.Key);
 
-            foreach (var slot in slotsToClear)
-            {
-                UnequipItem(slot);
+                foreach (var slot in slotsToClear)
+                    UnequipItem(slot);
             }
         }
     }

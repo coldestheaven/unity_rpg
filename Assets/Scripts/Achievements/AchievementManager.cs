@@ -2,6 +2,7 @@ using UnityEngine;
 using System;
 using System.Collections.Generic;
 using Framework.Assets;
+using Framework.Core.Pools;
 using Framework.Events;
 using RPG.Core;
 
@@ -89,7 +90,11 @@ namespace RPG.Achievements
         /// </summary>
         public AchievementInstance[] GetAllAchievements()
         {
-            return new List<AchievementInstance>(achievements.Values).ToArray();
+            using (ListPool<AchievementInstance>.Rent(out var tmp))
+            {
+                tmp.AddRange(achievements.Values);
+                return tmp.ToArray();
+            }
         }
 
         /// <summary>
@@ -97,18 +102,13 @@ namespace RPG.Achievements
         /// </summary>
         public AchievementInstance[] GetUnlockedAchievements()
         {
-            List<AchievementInstance> unlocked = new List<AchievementInstance>();
-
-            foreach (var achievement in achievements.Values)
+            using (ListPool<AchievementInstance>.Rent(out var unlocked))
             {
-                if (achievement.State == AchievementState.Unlocked ||
-                    achievement.State == AchievementState.Claimed)
-                {
-                    unlocked.Add(achievement);
-                }
+                foreach (var a in achievements.Values)
+                    if (a.State == AchievementState.Unlocked || a.State == AchievementState.Claimed)
+                        unlocked.Add(a);
+                return unlocked.ToArray();
             }
-
-            return unlocked.ToArray();
         }
 
         /// <summary>
@@ -116,17 +116,13 @@ namespace RPG.Achievements
         /// </summary>
         public AchievementInstance[] GetClaimableAchievements()
         {
-            List<AchievementInstance> claimable = new List<AchievementInstance>();
-
-            foreach (var achievement in achievements.Values)
+            using (ListPool<AchievementInstance>.Rent(out var claimable))
             {
-                if (achievement.State == AchievementState.Unlocked)
-                {
-                    claimable.Add(achievement);
-                }
+                foreach (var a in achievements.Values)
+                    if (a.State == AchievementState.Unlocked)
+                        claimable.Add(a);
+                return claimable.ToArray();
             }
-
-            return claimable.ToArray();
         }
 
         /// <summary>
@@ -270,17 +266,17 @@ namespace RPG.Achievements
         /// </summary>
         public void SaveAchievementProgress()
         {
-            List<AchievementProgress> progressList = new List<AchievementProgress>();
-
-            foreach (var achievement in achievements.Values)
+            string jsonData;
+            using (ListPool<AchievementProgress>.Rent(out var progressList))
             {
-                progressList.Add(achievement.SaveProgress());
+                foreach (var achievement in achievements.Values)
+                    progressList.Add(achievement.SaveProgress());
+
+                jsonData = JsonUtility.ToJson(new AchievementSaveData
+                {
+                    achievements = progressList.ToArray()
+                }, true);
             }
-
-            string jsonData = JsonUtility.ToJson(new AchievementSaveData
-            {
-                achievements = progressList.ToArray()
-            }, true);
 
             PlayerPrefs.SetString("AchievementProgress", jsonData);
             PlayerPrefs.Save();
