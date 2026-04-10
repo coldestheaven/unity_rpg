@@ -2,28 +2,36 @@ using UnityEngine;
 
 namespace Gameplay.Combat
 {
-    // ──────────────────────────────────────────────────────────────────────────
-    // Chain of Responsibility — Damage Processing Pipeline
+    // ────────────────────────────────────────────────────────────────────────────
+    //  职责链（Chain of Responsibility）— 伤害处理管线
     //
-    // Each DamageHandler in the chain inspects or transforms the incoming damage
-    // value and decides whether to pass it to the next handler or cancel it
-    // (return null).  Build chains with SetNext(); the tail handler always runs last.
+    //  每个 DamageHandler 节点可以：
+    //    • 修改伤害值后传递给下一节点（base.Handle 或 _next?.Handle）
+    //    • 返回 null 以完全取消本次伤害（吸收）
+    //    • 不调用 base.Handle 以截断后续链
     //
-    // Example chain:  InvincibilityHandler → DefenseHandler
-    //                                              → ElementalResistanceHandler
-    //                                                    → MinimumDamageHandler
-    // ──────────────────────────────────────────────────────────────────────────
+    //  标准链示例：
+    //    InvincibilityHandler → DefenseHandler
+    //                               → ElementalResistanceHandler
+    //                                     → MinimumDamageHandler
+    //
+    //  通过 DamagePipeline 工厂方法构建预置链；
+    //  在 DamageableBase.BuildDamageChain() 中安装自定义链。
+    // ────────────────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Abstract base for a node in the damage processing chain.
-    /// Override <see cref="Handle"/> to intercept or modify damage.
-    /// Return <c>null</c> to cancel (absorb) the damage entirely.
+    /// 伤害处理管线节点基类。
+    /// 继承此类并重写 <see cref="Handle"/> 以实现自定义伤害处理逻辑。
+    /// 返回 <c>null</c> 表示伤害被完全吸收（取消）。
     /// </summary>
     public abstract class DamageHandler
     {
         private DamageHandler _next;
 
-        /// <summary>Appends <paramref name="next"/> as the successor and returns it for fluent chaining.</summary>
+        /// <summary>
+        /// 将 <paramref name="next"/> 追加为当前节点的后继，并返回 <paramref name="next"/>
+        /// 以支持流式链式调用：<c>a.SetNext(b).SetNext(c)</c>。
+        /// </summary>
         public DamageHandler SetNext(DamageHandler next)
         {
             _next = next;
@@ -31,42 +39,42 @@ namespace Gameplay.Combat
         }
 
         /// <summary>
-        /// Process <paramref name="damage"/> for <paramref name="target"/>.
-        /// The default implementation forwards unchanged to the next handler.
+        /// 处理伤害请求。默认实现将原始值透传给下一节点；
+        /// 若无后继节点则直接返回当前伤害值。
         /// </summary>
-        public virtual float? Handle(float damage, DamageInfo info, DamageableBase target) =>
-            _next?.Handle(damage, info, target) ?? damage;
+        public virtual float? Handle(float damage, DamageInfo info, DamageableBase target)
+            => _next?.Handle(damage, info, target) ?? damage;
     }
 
-    // ──────────────────────────────────────────────────────────────────────────
-    // Concrete handlers
-    // ──────────────────────────────────────────────────────────────────────────
+    // ────────────────────────────────────────────────────────────────────────────
+    //  具体处理节点
+    // ────────────────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Cancels damage when the provided predicate returns <c>true</c>.
-    /// Typically used to model invincibility frames.
+    /// 无敌帧处理节点。
+    /// 当 <c>isInvincible()</c> 返回 <c>true</c> 时取消本次伤害。
+    /// 通常置于链的首端，保证优先判断无敌状态。
     /// </summary>
     public sealed class InvincibilityHandler : DamageHandler
     {
         private readonly System.Func<bool> _isInvincible;
 
+        /// <param name="isInvincible">无敌状态查询委托（不可为 null）。</param>
         public InvincibilityHandler(System.Func<bool> isInvincible)
-        {
-            _isInvincible = isInvincible;
-        }
+            => _isInvincible = isInvincible;
 
+        /// <inheritdoc/>
         public override float? Handle(float damage, DamageInfo info, DamageableBase target)
-        {
-            if (_isInvincible != null && _isInvincible()) return null;
-            return base.Handle(damage, info, target);
-        }
+            => _isInvincible() ? null : base.Handle(damage, info, target);
     }
 
     /// <summary>
-    /// Reduces damage by the target's flat defense stat (floored at 0).
+    /// 防御减伤节点。
+    /// 以目标的 <see cref="DamageableBase.Defense"/> 做平铺减算，伤害最低钳制到 0。
     /// </summary>
     public sealed class DefenseHandler : DamageHandler
     {
+        /// <inheritdoc/>
         public override float? Handle(float damage, DamageInfo info, DamageableBase target)
         {
             float reduced = Mathf.Max(0f, damage - (target?.Defense ?? 0f));
@@ -75,11 +83,13 @@ namespace Gameplay.Combat
     }
 
     /// <summary>
-    /// Multiplies damage by an elemental resistance/weakness factor
-    /// when the target implements <see cref="IElementalTarget"/>.
+    /// 元素抗性节点。
+    /// 当目标实现 <see cref="IElementalTarget"/> 时，以其返回的倍率修正伤害：
+    /// <c>0.5</c> = 抗性减半，<c>2.0</c> = 弱点加倍，<c>1.0</c> = 无效果。
     /// </summary>
     public sealed class ElementalResistanceHandler : DamageHandler
     {
+        /// <inheritdoc/>
         public override float? Handle(float damage, DamageInfo info, DamageableBase target)
         {
             float multiplier = target is IElementalTarget elemental
@@ -91,18 +101,20 @@ namespace Gameplay.Combat
     }
 
     /// <summary>
-    /// Clamps the final damage to a configured minimum so no attack deals zero.
-    /// Set <see cref="MinimumDamage"/> to 0 to allow full negation by armor.
+    /// 最小伤害保底节点。
+    /// 将经过全部减伤计算后的最终值钳制到 <see cref="MinimumDamage"/>，
+    /// 避免防御过高导致攻击完全无效（<see cref="MinimumDamage"/> = 0 则允许完全免伤）。
     /// </summary>
     public sealed class MinimumDamageHandler : DamageHandler
     {
+        /// <summary>伤害保底值。默认 1，可运行时修改。</summary>
         public float MinimumDamage { get; set; }
 
+        /// <param name="minimumDamage">最低伤害下限（默认 1）。</param>
         public MinimumDamageHandler(float minimumDamage = 1f)
-        {
-            MinimumDamage = minimumDamage;
-        }
+            => MinimumDamage = minimumDamage;
 
+        /// <inheritdoc/>
         public override float? Handle(float damage, DamageInfo info, DamageableBase target)
         {
             float? result = base.Handle(damage, info, target);
@@ -111,32 +123,41 @@ namespace Gameplay.Combat
         }
     }
 
-    // ──────────────────────────────────────────────────────────────────────────
-    // Interface for elemental targeting
-    // ──────────────────────────────────────────────────────────────────────────
+    // ────────────────────────────────────────────────────────────────────────────
+    //  元素目标接口
+    // ────────────────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Implement on a <see cref="DamageableBase"/> to participate in elemental
-    /// damage modification.  Return a multiplier: 0.5 = resist, 2.0 = weak, 1.0 = neutral.
+    /// 使 <see cref="DamageableBase"/> 参与元素伤害倍率计算的接口。
+    /// 实现此接口后，<see cref="ElementalResistanceHandler"/> 将调用
+    /// <see cref="GetDamageMultiplier"/> 获取元素修正系数。
     /// </summary>
     public interface IElementalTarget
     {
+        /// <summary>
+        /// 返回对 <paramref name="damageType"/> 的伤害倍率。
+        /// <list type="bullet">
+        ///   <item><c>0.5</c> — 抗性（伤害减半）</item>
+        ///   <item><c>1.0</c> — 中性（无修正）</item>
+        ///   <item><c>2.0</c> — 弱点（伤害加倍）</item>
+        /// </list>
+        /// </summary>
         float GetDamageMultiplier(CombatDamageType damageType);
     }
 
-    // ──────────────────────────────────────────────────────────────────────────
-    // Factory helpers
-    // ──────────────────────────────────────────────────────────────────────────
+    // ────────────────────────────────────────────────────────────────────────────
+    //  管线工厂
+    // ────────────────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Factory methods that build commonly used handler chains.
-    /// Override <c>DamageableBase.BuildDamageChain()</c> to install a custom chain.
+    /// 预置伤害处理链工厂。
+    /// 在 <see cref="DamageableBase.BuildDamageChain()"/> 中选用或返回自定义链。
     /// </summary>
     public static class DamagePipeline
     {
         /// <summary>
-        /// Default chain: DefenseHandler → MinimumDamageHandler(0).
-        /// Damage can be fully negated by defense; no elemental processing.
+        /// 默认链：<b>DefenseHandler → MinimumDamageHandler(0)</b>。
+        /// 防御可完全抵消伤害；无元素处理。适用于普通敌人。
         /// </summary>
         public static DamageHandler BuildDefault()
         {
@@ -146,21 +167,22 @@ namespace Gameplay.Combat
         }
 
         /// <summary>
-        /// Full chain: DefenseHandler → ElementalResistanceHandler → MinimumDamageHandler(1).
-        /// Suitable for enemies with elemental type properties.
+        /// 元素链：<b>DefenseHandler → ElementalResistanceHandler → MinimumDamageHandler(1)</b>。
+        /// 适用于具有元素属性的 Boss / 特殊敌人。
         /// </summary>
         public static DamageHandler BuildWithElemental()
         {
-            var defense = new DefenseHandler();
+            var defense   = new DefenseHandler();
             var elemental = new ElementalResistanceHandler();
             defense.SetNext(elemental).SetNext(new MinimumDamageHandler(1f));
             return defense;
         }
 
         /// <summary>
-        /// Chain with configurable invincibility:
-        /// InvincibilityHandler → DefenseHandler → MinimumDamageHandler(0).
+        /// 无敌链：<b>InvincibilityHandler → DefenseHandler → MinimumDamageHandler(0)</b>。
+        /// 适用于需要无敌帧的玩家角色或特殊实体。
         /// </summary>
+        /// <param name="isInvincible">无敌状态查询委托（通常绑定到组件字段或属性）。</param>
         public static DamageHandler BuildWithInvincibility(System.Func<bool> isInvincible)
         {
             var inv = new InvincibilityHandler(isInvincible);
