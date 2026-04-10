@@ -213,6 +213,45 @@ namespace Framework.Events
         }
     }
 
+    public readonly struct ItemDroppedEvent : IGameEvent
+    {
+        public GameEventId EventId => GameEventId.ItemDropped;
+        public readonly string  ItemId;
+        public readonly string  ItemName;
+        public readonly int     Quantity;
+        public readonly Vector3 Position;
+        public ItemDroppedEvent(string id, string name, int qty, Vector3 pos)
+        {
+            ItemId = id; ItemName = name; Quantity = qty; Position = pos;
+        }
+    }
+
+    public readonly struct ItemBoughtEvent : IGameEvent
+    {
+        public GameEventId EventId => GameEventId.ItemBought;
+        public readonly string ItemId;
+        public readonly string ItemName;
+        public readonly int    Quantity;
+        public readonly int    TotalCost;
+        public ItemBoughtEvent(string id, string name, int qty, int cost)
+        {
+            ItemId = id; ItemName = name; Quantity = qty; TotalCost = cost;
+        }
+    }
+
+    public readonly struct ItemSoldEvent : IGameEvent
+    {
+        public GameEventId EventId => GameEventId.ItemSold;
+        public readonly string ItemId;
+        public readonly string ItemName;
+        public readonly int    Quantity;
+        public readonly int    TotalGold;
+        public ItemSoldEvent(string id, string name, int qty, int gold)
+        {
+            ItemId = id; ItemName = name; Quantity = qty; TotalGold = gold;
+        }
+    }
+
     public readonly struct InventoryChangedEvent : IGameEvent
     {
         public GameEventId EventId => GameEventId.InventoryChanged;

@@ -40,11 +40,17 @@ namespace RPG.Items
     public class ItemData : ScriptableObject
     {
         [Header("基本信息")]
+        [Tooltip("唯一 ID，用于存档与数据库检索。建议格式: item_sword_iron")]
+        public string itemId;
         public string itemName;
         [TextArea]
         public string description;
         public Sprite icon;
         public ItemType itemType;
+
+        [Header("品质")]
+        [Tooltip("物品稀有度，影响名称颜色与掉落概率。")]
+        public ItemRarity rarity = ItemRarity.Common;
 
         [Header("属性")]
         public int value = 1;

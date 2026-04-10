@@ -43,6 +43,9 @@ namespace Framework.Events
         ItemPickupFailed,
         ItemUsed,
         ItemEquipped,
+        ItemDropped,
+        ItemBought,
+        ItemSold,
         InventoryChanged,
         QuestItemCollected,
 

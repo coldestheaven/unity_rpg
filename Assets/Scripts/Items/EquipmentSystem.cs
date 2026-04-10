@@ -105,7 +105,7 @@ namespace RPG.Items
         }
 
         /// <summary>
-        /// 交换装备(穿戴背包中的装备)
+        /// 从背包中交换装备（背包 → 装备槽，原装备 → 背包）。
         /// </summary>
         public bool SwapEquipment(EquipmentData fromInventory)
         {
@@ -114,29 +114,24 @@ namespace RPG.Items
             EquipmentSlot slot = fromInventory.equipmentSlot;
             EquipmentData currentEquipped = equippedItems[slot];
 
-            // 从背包移除
-            if (inventory != null && !inventory.RemoveItem(fromInventory, 1))
+            // 从背包移除（修复：RemoveItem 返回 InventoryOperationResult，不是 bool）
+            if (inventory != null &&
+                inventory.RemoveItem(fromInventory, 1) != InventoryOperationResult.Success)
             {
                 return false;
             }
 
-            // 卸下当前装备
-            if (currentEquipped != null)
-            {
-                // 返回到背包
-                if (inventory != null)
-                {
-                    inventory.AddItem(currentEquipped, 1);
-                }
-            }
+            // 将当前槽位装备返还背包
+            if (currentEquipped != null && inventory != null)
+                inventory.AddItem(currentEquipped, 1);
 
-            // 装备新物品
+            // 装入新装备
             equippedItems[slot] = fromInventory;
 
             OnEquipmentChanged?.Invoke(slot, fromInventory);
             NotifyModifiersChanged();
-
-            Framework.Events.EventBus.Publish(new Framework.Events.ItemEquippedEvent(fromInventory.name, slot.ToString(), true));
+            Framework.Events.EventBus.Publish(
+                new Framework.Events.ItemEquippedEvent(fromInventory.name, slot.ToString(), true));
 
             return true;
         }
