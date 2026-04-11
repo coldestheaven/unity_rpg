@@ -161,7 +161,7 @@ namespace Framework.Diagnostics
 
         private static long SlidingAverage(ProfilerRecorder rec)
         {
-            if (!rec.IsValid || rec.Count == 0) return 0;
+            if (!rec.Valid || rec.Count == 0) return 0;
             long sum = 0;
             int  n   = rec.Count;
             for (int i = 0; i < n; i++) sum += rec.GetSample(i).Value;
@@ -170,7 +170,7 @@ namespace Framework.Diagnostics
 
         private static double SlidingAverageNs(ProfilerRecorder rec)
         {
-            if (!rec.IsValid || rec.Count == 0) return 0;
+            if (!rec.Valid || rec.Count == 0) return 0;
             long sum = 0;
             int  n   = rec.Count;
             for (int i = 0; i < n; i++) sum += rec.GetSample(i).Value;
@@ -178,7 +178,7 @@ namespace Framework.Diagnostics
         }
 
         private static long LastValue(ProfilerRecorder rec)
-            => rec.IsValid ? rec.LastValue : 0;
+            => rec.Valid ? rec.LastValue : 0;
 
         // ── GUI 样式 ─────────────────────────────────────────────────────────
 

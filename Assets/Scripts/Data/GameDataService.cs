@@ -93,12 +93,12 @@ namespace RPG.Data
         /// <summary>当前角色的玩家数据配置。</summary>
         public PlayerData                     Player       => _playerData;
 
-        public IRepository<ItemData>          Items        => EnsureInit(_itemDatabase);
-        public IRepository<SkillData>         Skills       => EnsureInit(_skillDatabase);
-        public IRepository<EnemyData>         Enemies      => EnsureInit(_enemyDatabase);
-        public IRepository<BuffData>          Buffs        => EnsureInit(_buffDatabase);
-        public IRepository<QuestData>         Quests       => EnsureInit(_questDatabase);
-        public IRepository<AchievementData>   Achievements => EnsureInit(_achievementDatabase);
+        public IRepository<ItemData>          Items        => EnsureInit<ItemData>(_itemDatabase);
+        public IRepository<SkillData>         Skills       => EnsureInit<SkillData>(_skillDatabase);
+        public IRepository<EnemyData>         Enemies      => EnsureInit<EnemyData>(_enemyDatabase);
+        public IRepository<BuffData>          Buffs        => EnsureInit<BuffData>(_buffDatabase);
+        public IRepository<QuestData>         Quests       => EnsureInit<QuestData>(_questDatabase);
+        public IRepository<AchievementData>   Achievements => EnsureInit<AchievementData>(_achievementDatabase);
 
         // ── 便捷方法 ──────────────────────────────────────────────────────────
 

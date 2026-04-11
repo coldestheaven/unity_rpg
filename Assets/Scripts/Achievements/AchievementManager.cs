@@ -44,9 +44,8 @@ namespace RPG.Achievements
 
             if (achievementDatabase != null)
             {
-                AchievementData[] allAchievements = achievementDatabase.GetAllAchievements();
-
-                foreach (var achievementData in allAchievements)
+                var allList = achievementDatabase.GetAll();
+                foreach (var achievementData in allList)
                 {
                     AchievementInstance instance = new AchievementInstance(achievementData);
                     instance.OnAchievementUnlocked += OnAchievementUnlockedHandler;

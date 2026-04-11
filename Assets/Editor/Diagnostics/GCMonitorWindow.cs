@@ -142,7 +142,7 @@ namespace Editor.Diagnostics
 
         private void SampleFrame()
         {
-            if (!_gcAllocRec.IsValid) return;
+            if (!_gcAllocRec.Valid) return;
 
             long bytes = _gcAllocRec.LastValue;
 
@@ -207,10 +207,10 @@ namespace Editor.Diagnostics
         {
             // 统计摘要
             long avg  = _frameCount > 0 ? _totalAlloc / _frameCount : 0;
-            long used = _gcUsedRec.IsValid    ? _gcUsedRec.LastValue    : 0;
-            long rsv  = _gcReservedRec.IsValid ? _gcReservedRec.LastValue : 0;
-            long dc   = _drawCallsRec.IsValid  ? _drawCallsRec.LastValue  : 0;
-            double mainMs = _mainThreadRec.IsValid
+            long used = _gcUsedRec.Valid    ? _gcUsedRec.LastValue    : 0;
+            long rsv  = _gcReservedRec.Valid ? _gcReservedRec.LastValue : 0;
+            long dc   = _drawCallsRec.Valid  ? _drawCallsRec.LastValue  : 0;
+            double mainMs = _mainThreadRec.Valid
                 ? SlidingAverageNs(_mainThreadRec) / 1_000_000.0 : 0;
 
             using (new EditorGUILayout.HorizontalScope())
@@ -323,7 +323,7 @@ namespace Editor.Diagnostics
             for (int i = 0; i < _markerRecs.Count; i++)
             {
                 var (name, rec) = _markerRecs[i];
-                double us = rec.IsValid ? rec.LastValue / 1000.0 : -1;
+                double us = rec.Valid ? rec.LastValue / 1000.0 : -1;
 
                 using (new EditorGUILayout.HorizontalScope())
                 {
@@ -440,21 +440,21 @@ namespace Editor.Diagnostics
 
         private void StopRecorders()
         {
-            if (_gcAllocRec.IsValid)    _gcAllocRec.Dispose();
-            if (_gcUsedRec.IsValid)     _gcUsedRec.Dispose();
-            if (_gcReservedRec.IsValid) _gcReservedRec.Dispose();
-            if (_drawCallsRec.IsValid)  _drawCallsRec.Dispose();
-            if (_mainThreadRec.IsValid) _mainThreadRec.Dispose();
+            if (_gcAllocRec.Valid)    _gcAllocRec.Dispose();
+            if (_gcUsedRec.Valid)     _gcUsedRec.Dispose();
+            if (_gcReservedRec.Valid) _gcReservedRec.Dispose();
+            if (_drawCallsRec.Valid)  _drawCallsRec.Dispose();
+            if (_mainThreadRec.Valid) _mainThreadRec.Dispose();
 
             foreach (var (_, rec) in _markerRecs)
-                if (rec.IsValid) rec.Dispose();
+                if (rec.Valid) rec.Dispose();
             _markerRecs.Clear();
         }
 
         private void RefreshMarkerRecorders()
         {
             foreach (var (_, rec) in _markerRecs)
-                if (rec.IsValid) rec.Dispose();
+                if (rec.Valid) rec.Dispose();
             _markerRecs.Clear();
 
             // 注册所有 ProfilerMarkers 字段
@@ -497,7 +497,7 @@ namespace Editor.Diagnostics
 
         private static double SlidingAverageNs(ProfilerRecorder rec)
         {
-            if (!rec.IsValid || rec.Count == 0) return 0;
+            if (!rec.Valid || rec.Count == 0) return 0;
             long sum = 0;
             for (int i = 0; i < rec.Count; i++) sum += rec.GetSample(i).Value;
             return (double)sum / rec.Count;

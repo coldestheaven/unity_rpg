@@ -3,7 +3,7 @@ using UnityEditor;
 using RPG.Skills;
 using Editor.Windows;
 
-namespace Editor
+namespace RPGEditorTools
 {
     /// <summary>
     /// 技能数据自定义 Inspector

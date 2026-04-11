@@ -7,7 +7,7 @@ using RPG.Skills.Graph;
 /// 显示节点 / 连线统计，并提供"在节点图编辑器中打开"快捷按钮。
 /// </summary>
 [CustomEditor(typeof(SkillGraph))]
-public sealed class SkillGraphInspector : Editor
+public sealed class SkillGraphInspector : UnityEditor.Editor
 {
     public override void OnInspectorGUI()
     {

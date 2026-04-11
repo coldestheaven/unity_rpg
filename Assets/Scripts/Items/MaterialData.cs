@@ -46,7 +46,7 @@ namespace RPG.Items
         [Range(1, 5)]
         public int craftingTier = 1;
 
-        [Tooltip("每次精炼/合成时，此材料作为消耗品能提供的"品质点"数值。")]
+        [Tooltip("每次精炼/合成时，此材料作为消耗品能提供的「品质点」数值。")]
         [Min(0)]
         public int qualityPoints = 1;
 

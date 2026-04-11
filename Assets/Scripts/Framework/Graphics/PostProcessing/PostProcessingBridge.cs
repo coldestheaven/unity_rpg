@@ -1,4 +1,4 @@
-using Framework.Core.Events;
+using Framework.Events;
 using UnityEngine;
 
 namespace Framework.Graphics.PostProcessing
@@ -47,8 +47,6 @@ namespace Framework.Graphics.PostProcessing
         [SerializeField] private float _hitChromaticPeak     = 0.5f;
         [Tooltip("受击色差持续时间（秒）。")]
         [SerializeField] private float _hitChromaticDuration = 0.3f;
-
-        [Header("暂停效果")]
 
         // ── 生命周期 ──────────────────────────────────────────────────────────
 

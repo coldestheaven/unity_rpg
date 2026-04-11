@@ -42,7 +42,7 @@ namespace Framework.Threading
             {
                 Name = name,
                 IsBackground = true,        // won't prevent application exit
-                Priority = ThreadPriority.BelowNormal  // yield to render thread
+                Priority = System.Threading.ThreadPriority.BelowNormal  // yield to render thread
             };
         }
 

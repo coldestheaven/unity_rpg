@@ -267,9 +267,6 @@ namespace RPG.Items
         public InventorySlot GetSlot(int index)
             => IsValidIndex(index) ? _slots[index] : null;
 
-        /// <summary>返回所有槽的只读快照数组（每次调用均分配新数组）。</summary>
-        public InventorySlot[] GetAllSlots() => _slots.ToArray();
-
         /// <summary>
         /// 遍历所有槽（零分配），用于只读迭代场景。
         /// </summary>
@@ -377,7 +374,7 @@ namespace RPG.Items
                 var sd = saveData.slots[i];
                 if (string.IsNullOrEmpty(sd.itemId) || sd.quantity <= 0) continue;
 
-                ItemData itemData = database?.GetItem(sd.itemId);
+                ItemData itemData = database?.GetById(sd.itemId);
                 if (itemData == null)
                 {
                     Debug.LogWarning($"[InventorySystem] 无法找到物品: {sd.itemId}，槽位 {i} 将留空。");

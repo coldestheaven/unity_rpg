@@ -96,7 +96,7 @@ namespace RPG.Items
 
         /// <summary>向玩家背包添加物品（通过 itemId 查找）。</summary>
         public InventoryOperationResult AddItem(string itemId, int quantity = 1)
-            => AddItem(itemDatabase?.GetItem(itemId), quantity);
+            => AddItem(itemDatabase?.GetById(itemId), quantity);
 
         /// <summary>从玩家背包移除物品。</summary>
         public InventoryOperationResult RemoveItem(ItemData item, int quantity = 1)
@@ -212,7 +212,7 @@ namespace RPG.Items
         // ── 数据查询 ──────────────────────────────────────────────────────────────
 
         /// <summary>通过 itemId 从数据库获取物品数据。</summary>
-        public ItemData GetItemData(string itemId) => itemDatabase?.GetItem(itemId);
+        public ItemData GetItemData(string itemId) => itemDatabase?.GetById(itemId);
 
         // ── 金币 ──────────────────────────────────────────────────────────────────
 

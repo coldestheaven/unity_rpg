@@ -65,8 +65,8 @@ namespace RPG.Items
             }
 
             // 掉金币
-            if (evt.Gold > 0)
-                HandleGoldDrop(evt.Gold, evt.Position);
+            if (evt.GoldReward > 0)
+                HandleGoldDrop(evt.GoldReward, evt.Position);
 
             // 掉物品
             var table = enemyData.lootTable;

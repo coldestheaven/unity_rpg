@@ -1,6 +1,10 @@
 using UnityEngine;
 using UnityEditor;
 using System.IO;
+using RPG.Achievements;
+using RPG.Data;
+using RPG.Items;
+using RPG.Quests;
 
 namespace Editor.Tools
 {
@@ -17,16 +21,16 @@ namespace Editor.Tools
             }
 
             // Generate Item Database
-            CreateDatabase<Managers.ItemDatabase>(databasePath, "ItemDatabase");
+            CreateDatabase<ItemDatabase>(databasePath, "ItemDatabase");
 
             // Generate Skill Database
-            CreateDatabase<Managers.SkillDatabase>(databasePath, "SkillDatabase");
+            CreateDatabase<SkillDatabase>(databasePath, "SkillDatabase");
 
             // Generate Quest Database
-            CreateDatabase<Managers.QuestDatabase>(databasePath, "QuestDatabase");
+            CreateDatabase<QuestDatabase>(databasePath, "QuestDatabase");
 
             // Generate Achievement Database
-            CreateDatabase<Managers.AchievementDatabase>(databasePath, "AchievementDatabase");
+            CreateDatabase<AchievementDatabase>(databasePath, "AchievementDatabase");
 
             AssetDatabase.Refresh();
             Debug.Log("Default databases created successfully!");

@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using RPG.Achievements;
 using RPG.Items;
 using RPG.Quests;
@@ -50,14 +52,22 @@ namespace RPG.Core
         // ── Facade methods (backward compat) ─────────────────────────────────
 
         public ItemData        GetItem(string id)        => RPG.Data.GameDataService.Instance?.GetItem(id)
-                                                          ?? itemDatabase?.GetItem(id);
+                                                          ?? itemDatabase?.GetById(id);
         public QuestData       GetQuest(string id)       => RPG.Data.GameDataService.Instance?.GetQuest(id)
-                                                          ?? questDatabase?.GetQuest(id);
+                                                          ?? questDatabase?.GetById(id);
         public AchievementData GetAchievement(string id) => RPG.Data.GameDataService.Instance?.Achievements?.GetById(id)
-                                                          ?? achievementDatabase?.GetAchievement(id);
+                                                          ?? achievementDatabase?.GetById(id);
 
-        public ItemData[]        GetAllItems()       => itemDatabase?.GetAllItems()        ?? Array.Empty<ItemData>();
-        public QuestData[]       GetAllQuests()      => questDatabase?.GetAllQuests()      ?? Array.Empty<QuestData>();
-        public AchievementData[] GetAllAchievements()=> achievementDatabase?.GetAllAchievements() ?? Array.Empty<AchievementData>();
+        public ItemData[]        GetAllItems()       => ToArray(RPG.Data.GameDataService.Instance?.Items?.GetAll(), itemDatabase?.GetAll());
+        public QuestData[]       GetAllQuests()      => ToArray(RPG.Data.GameDataService.Instance?.Quests?.GetAll(), questDatabase?.GetAll());
+        public AchievementData[] GetAllAchievements()=> ToArray(RPG.Data.GameDataService.Instance?.Achievements?.GetAll(), achievementDatabase?.GetAll());
+
+        private static T[] ToArray<T>(IReadOnlyList<T> primary, IReadOnlyList<T> fallback)
+            where T : class
+        {
+            if (primary != null && primary.Count > 0) return primary.ToArray();
+            if (fallback != null && fallback.Count > 0) return fallback.ToArray();
+            return Array.Empty<T>();
+        }
     }
 }

@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using Framework.Events;
@@ -323,10 +324,10 @@ namespace RPG.Core
         #region Legacy Interface (兼容旧代码)
 
         [Obsolete("Use stateManager.PauseGame() instead")]
-        public bool isPaused => stateManager?.CurrentState == GameState.Paused ?? false;
+        public bool isPaused => stateManager != null && stateManager.CurrentState == GameState.Paused;
 
         [Obsolete("Use stateManager.CurrentState == GameState.GameOver instead")]
-        public bool isGameOver => stateManager?.CurrentState == GameState.GameOver ?? false;
+        public bool isGameOver => stateManager != null && stateManager.CurrentState == GameState.GameOver;
 
         #endregion
     }

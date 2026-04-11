@@ -34,9 +34,11 @@ namespace Framework.Graphics.PostProcessing
     {
         // ── Inspector 字段 ────────────────────────────────────────────────────
 
+#if URP_ENABLED
         [Header("URP Volume")]
         [Tooltip("场景中的全局 Volume 组件（通常为 DontDestroyOnLoad 节点上）。")]
         [SerializeField] private Volume _globalVolume;
+#endif
 
         [Header("状态预设")]
         [SerializeField] private PostProcessingPreset _normalPreset;

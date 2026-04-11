@@ -77,7 +77,7 @@ namespace RPG.Quests
                 return false;
             }
 
-            QuestData questData = questDatabase?.GetQuest(questId);
+            QuestData questData = questDatabase?.GetById(questId);
             if (questData == null)
             {
                 Debug.LogError($"Quest data not found: {questId}");
@@ -248,7 +248,7 @@ namespace RPG.Quests
             using (ListPool<QuestData>.Rent(out var available))
             {
                 if (questDatabase != null)
-                    foreach (var qd in questDatabase.GetAllQuests())
+                    foreach (var qd in questDatabase.GetAll())
                         if (IsQuestAvailable(qd)) available.Add(qd);
                 return available.ToArray();
             }
@@ -272,7 +272,7 @@ namespace RPG.Quests
         {
             if (questDatabase == null) return;
 
-            foreach (var qd in questDatabase.GetAllQuests())
+            foreach (var qd in questDatabase.GetAll())
             {
                 if (qd.prerequisiteQuests == null) continue;
                 foreach (var prereq in qd.prerequisiteQuests)

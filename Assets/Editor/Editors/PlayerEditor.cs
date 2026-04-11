@@ -1,10 +1,10 @@
 using UnityEngine;
 using UnityEditor;
 
-namespace Editor
+namespace RPGEditorTools
 {
     [CustomEditor(typeof(Gameplay.Player.PlayerController))]
-    public class PlayerControllerEditor : Editor
+    public class PlayerControllerEditor : UnityEditor.Editor
     {
         private SerializedProperty movementProp;
         private SerializedProperty combatProp;

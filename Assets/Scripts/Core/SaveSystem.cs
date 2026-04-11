@@ -329,7 +329,7 @@ namespace RPG.Core
             foreach (var s in dto.slots)
             {
                 if (string.IsNullOrEmpty(s.itemId) || s.quantity <= 0) continue;
-                var item = db.GetItem(s.itemId);
+                var item = db.GetById(s.itemId);
                 if (item != null)
                     itemSys.inventory.AddItem(item, s.quantity);
                 else
@@ -351,7 +351,7 @@ namespace RPG.Core
             foreach (var s in dto.slots)
             {
                 if (string.IsNullOrEmpty(s.itemId)) continue;
-                var item = db.GetItem(s.itemId) as Items.EquipmentData;
+                var item = db.GetById(s.itemId) as Items.EquipmentData;
                 if (item != null)
                     itemSys.equipment.EquipItem(item);
                 else
